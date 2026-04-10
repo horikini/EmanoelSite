@@ -6,7 +6,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden relative">
       {/* Global Speed Lines Effect */}
-      <div className="fixed inset-0 z-0 pointer-events-none opacity-10 overflow-hidden">
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-25 overflow-hidden">
         {[...Array(12)].map((_, i) => (
           <motion.div
             key={i}
@@ -171,7 +171,7 @@ export default function Landing() {
       </section>
 
       {/* Metodologia / Tipos de Treinamento */}
-      <section id="treinamentos" className="py-24 px-4 relative z-10 bg-slate-950">
+      <section id="treinamentos" className="py-24 px-4 relative z-10 bg-transparent">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black italic mb-4">NOSSOS TREINAMENTOS</h2>
@@ -221,7 +221,7 @@ export default function Landing() {
       </section>
 
       {/* Treinamento Funcional e Força */}
-      <section className="py-24 px-4 relative z-10 bg-slate-950 overflow-hidden">
+      <section className="py-24 px-4 relative z-10 bg-transparent overflow-hidden">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-24">
             <motion.div 
@@ -322,7 +322,7 @@ export default function Landing() {
       </section>
 
       {/* Planilha e Acompanhamento */}
-      <section className="py-24 px-4 relative z-10 bg-slate-900 overflow-hidden">
+      <section className="py-24 px-4 relative z-10 bg-slate-900/40 backdrop-blur-md overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
           <div className="flex-1 space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-sm font-bold border border-blue-500/20">
@@ -362,7 +362,7 @@ export default function Landing() {
       </section>
 
       {/* Galeria de Treinamento em Ação */}
-      <section className="py-24 px-4 relative z-10 bg-slate-950">
+      <section className="py-24 px-4 relative z-10 bg-transparent">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black italic mb-4">TREINAMENTO EM AÇÃO</h2>
@@ -431,63 +431,50 @@ export default function Landing() {
       </section>
 
       {/* Parceria Nutricional */}
-      <section className="py-24 px-4 relative z-10 bg-slate-950">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row-reverse items-center gap-12">
-          <div className="flex-1 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-sm font-bold border border-green-500/20">
-              <Utensils size={16} />
-              <span>O COMBUSTÍVEL DO CAMPEÃO</span>
-            </div>
-            <h2 className="text-3xl md:text-5xl font-black italic leading-tight">
-              Parceria com <span className="text-green-500">Nutricionista Esportivo</span>
-            </h2>
-            <p className="text-slate-300 text-lg leading-relaxed">
-              O treino destrói, a alimentação constrói. Para garantir que você tenha a melhor recuperação e energia em campo, oferecemos acompanhamento nutricional especializado.
-            </p>
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl mt-6">
-              <h4 className="font-bold text-xl mb-2 flex items-center gap-2">
-                <Trophy className="text-yellow-500" size={20} />
-                Vantagens da Parceria
-              </h4>
-              <p className="text-slate-400">Planos alimentares focados em ganho de massa, perda de percentual de gordura e estratégias de suplementação para dias de jogos e treinos intensos.</p>
-            </div>
+      <section className="py-24 px-4 relative z-10 bg-transparent">
+        <div className="max-w-3xl mx-auto flex flex-col items-center text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-sm font-bold border border-green-500/20">
+            <Utensils size={16} />
+            <span>O COMBUSTÍVEL DO CAMPEÃO</span>
           </div>
-          <div className="flex-1 w-full relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 blur-[100px] opacity-20 rounded-full" />
-            <img 
-              src="https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?q=80&w=1000&auto=format&fit=crop" 
-              alt="Plano Nutricional e Fita Métrica" 
-              className="relative rounded-3xl border border-slate-700 shadow-2xl w-full object-cover h-[300px]"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?q=80&w=1000&auto=format&fit=crop";
-              }}
-            />
+          <h2 className="text-3xl md:text-5xl font-black italic leading-tight">
+            Parceria com <span className="text-green-500">Nutricionista Esportivo</span>
+          </h2>
+          <p className="text-slate-300 text-lg leading-relaxed">
+            O treino destrói, a alimentação constrói. Para garantir que você tenha a melhor recuperação e energia em campo, oferecemos acompanhamento nutricional especializado.
+          </p>
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl mt-6 text-left w-full">
+            <h4 className="font-bold text-xl mb-2 flex items-center gap-2">
+              <Trophy className="text-yellow-500" size={20} />
+              Vantagens da Parceria
+            </h4>
+            <p className="text-slate-400">Planos alimentares focados em ganho de massa, perda de percentual de gordura e estratégias de suplementação para dias de jogos e treinos intensos.</p>
           </div>
         </div>
       </section>
 
       {/* CTA Final */}
-      <section className="py-24 px-4 relative z-10 bg-gradient-to-br from-orange-600 to-orange-900 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
-        <div className="relative z-10 max-w-3xl mx-auto">
+      <section className="py-24 px-4 relative z-10 bg-slate-900/40 backdrop-blur-md text-center overflow-hidden border-t border-slate-800">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 mix-blend-overlay"></div>
+        <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
           <h2 className="text-4xl md:text-6xl font-black italic mb-6 uppercase drop-shadow-lg">
             Pronto para mudar de patamar?
           </h2>
-          <p className="text-orange-100 text-xl mb-10">
+          <p className="text-slate-300 text-xl mb-10">
             Junte-se à ELS POWER e tenha acesso ao treinamento, acompanhamento e estrutura que os atletas profissionais utilizam.
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center justify-center gap-2 bg-white text-orange-700 font-black text-xl py-5 px-10 rounded-full hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] active:scale-95 transition-all"
+            className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg active:scale-[0.98] transition-all"
           >
-            QUERO SER ELS POWER
-            <ChevronRight size={28} />
+            INICIAR TREINAMENTO
+            <ChevronRight size={20} />
           </Link>
         </div>
       </section>
       
       {/* Footer */}
-      <footer className="bg-slate-950 py-12 px-4 text-center border-t border-slate-900">
+      <footer className="relative z-10 bg-slate-950/80 backdrop-blur-md py-12 px-4 text-center border-t border-slate-900">
         <div className="flex items-center justify-center gap-2 mb-6 opacity-50">
           <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center font-black text-sm italic text-white">EP</div>
           <span className="font-black text-lg tracking-tighter italic text-white">ELS POWER</span>
