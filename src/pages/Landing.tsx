@@ -4,20 +4,42 @@ import { ChevronRight, Zap, Trophy, Dumbbell, Target, HeartPulse, LineChart, Ute
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden relative">
+      {/* Global Speed Lines Effect */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-10 overflow-hidden">
+        {[...Array(12)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute h-[300%] w-[1px] bg-gradient-to-b from-transparent via-white to-transparent"
+            style={{ 
+              left: `${5 + i * 8}%`,
+              top: '-100%',
+              opacity: 0.1 + Math.random() * 0.3
+            }}
+            animate={{ y: ['0%', '100%'] }}
+            transition={{
+              duration: 0.5 + Math.random() * 1.5,
+              repeat: Infinity,
+              ease: 'linear',
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
+
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-50 p-4 md:px-8 flex justify-between items-center bg-gradient-to-b from-slate-950/80 to-transparent">
         <div className="flex items-center gap-2">
           <img 
-            src="/logo.png" 
+            src="/logo.jpeg" 
             alt="ELS POWER Logo" 
             className="h-16 w-auto object-contain drop-shadow-lg"
             onError={(e) => {
               const target = e.currentTarget;
-              if (target.src.endsWith('.png')) {
+              if (target.src.endsWith('.jpeg')) {
                 target.src = '/logo.jpg';
               } else if (target.src.endsWith('.jpg')) {
-                target.src = '/logo.jpeg';
+                target.src = '/logo.png';
               } else {
                 target.style.display = 'none';
                 document.getElementById('fallback-logo')!.style.display = 'flex';
@@ -26,7 +48,7 @@ export default function Landing() {
           />
           <div id="fallback-logo" className="hidden items-center gap-2">
             <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl flex items-center justify-center font-black text-2xl italic shadow-lg shadow-orange-500/20">
-              EP
+              ⚽
             </div>
             <span className="font-black text-2xl tracking-tighter italic text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">ELS POWER</span>
           </div>

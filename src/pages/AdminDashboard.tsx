@@ -35,14 +35,21 @@ export default function AdminDashboard() {
 
     // Load mock data
     const saved = localStorage.getItem('els_records');
-    if (saved) {
+    if (saved && JSON.parse(saved).length >= 20) {
       setRecords(JSON.parse(saved));
     } else {
-      // Initial mock data if empty
-      const initial: Record[] = [
-        { id: 1, date: new Date().toISOString(), user: 'Carlos Silva', phone: '5511999999999', pain: 2, fatigue: 4, hydration: '3', status: 'Pendente' },
-        { id: 2, date: new Date(Date.now() - 86400000).toISOString(), user: 'Marcos Paulo', phone: '5511988888888', pain: 8, fatigue: 9, hydration: '6', status: 'Ruim' },
-      ];
+      // Generate 20 mock records
+      const names = ['Carlos Silva', 'Marcos Paulo', 'João Atleta', 'Lucas Souza', 'Gabriel Lima', 'Rafael Santos', 'Bruno Oliveira', 'Thiago Costa', 'Felipe Rocha', 'André Mendes', 'Mateus Alvez', 'Vitor Hugo', 'Daniel Cruz', 'Igor Ferreira', 'Gustavo Lima', 'Rodrigo Melo', 'Samuel Paz', 'Diego Torres', 'Renan Silva', 'Alexandre Pato'];
+      const initial: Record[] = names.map((name, index) => ({
+        id: index + 1,
+        date: new Date(Date.now() - Math.random() * 1000000000).toISOString(),
+        user: name,
+        phone: '55119' + Math.floor(10000000 + Math.random() * 90000000),
+        pain: Math.floor(Math.random() * 11),
+        fatigue: Math.floor(Math.random() * 11),
+        hydration: String(Math.floor(1 + Math.random() * 8)),
+        status: index % 5 === 0 ? 'Pendente' : STATUS_OPTIONS[Math.floor(Math.random() * STATUS_OPTIONS.length)].label
+      }));
       setRecords(initial);
       localStorage.setItem('els_records', JSON.stringify(initial));
     }
@@ -66,7 +73,7 @@ export default function AdminDashboard() {
 
   const filteredRecords = records.filter(r => 
     r.user.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -74,35 +81,33 @@ export default function AdminDashboard() {
       <header className="bg-slate-900 text-white p-4 sticky top-0 z-20 shadow-md flex justify-between items-center">
         <div className="flex items-center gap-3">
           <img 
-            src="/logo.png" 
+            src="/logo.jpeg" 
             alt="Logo" 
             className="h-8 w-auto object-contain"
             onError={(e) => {
               const target = e.currentTarget;
-              if (target.src.endsWith('.png')) {
-                target.src = '/logo.jpg';
-              } else if (target.src.endsWith('.jpg')) {
-                target.src = '/logo.jpeg';
-              } else {
+              if (target.src.endsWith('.jpeg')) target.src = '/logo.jpg';
+              else if (target.src.endsWith('.jpg')) target.src = '/logo.png';
+              else {
                 target.style.display = 'none';
                 document.getElementById('fallback-admin-logo')!.style.display = 'flex';
               }
             }}
           />
-          <div id="fallback-admin-logo" className="hidden w-8 h-8 bg-orange-500 rounded-md items-center justify-center font-bold italic">EP</div>
-          <h1 className="font-bold text-lg hidden sm:block">Admin CRM - ELS POWER</h1>
+          <div id="fallback-admin-logo" className="hidden w-8 h-8 bg-orange-500 rounded-md items-center justify-center font-bold italic">⚽</div>
+          <h1 className="font-bold text-lg hidden xs:block">Admin CRM</h1>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg text-sm hover:bg-slate-700 transition">
           <LogOut size={16} />
-          <span>Sair</span>
+          <span className="hidden sm:inline">Sair</span>
         </button>
       </header>
 
-      <main className="p-4 md:p-8 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <main className="p-3 md:p-8 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">Painel de Monitoramento</h2>
-            <p className="text-slate-500">Acompanhe o bem-estar dos atletas</p>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-800">Monitoramento</h2>
+            <p className="text-slate-500 text-sm">Acompanhe o bem-estar dos atletas</p>
           </div>
           
           <div className="flex w-full md:w-auto gap-2">
@@ -113,61 +118,106 @@ export default function AdminDashboard() {
                 placeholder="Buscar atleta..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-sm"
               />
             </div>
-            <button className="p-2 border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50">
-              <Filter size={20} />
-            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-              <Activity size={24} />
+            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0">
+              <Activity size={20} />
             </div>
             <div>
-              <p className="text-sm text-slate-500 font-medium">Total Relatórios</p>
-              <p className="text-2xl font-bold text-slate-800">{records.length}</p>
+              <p className="text-xs text-slate-500 font-medium">Total</p>
+              <p className="text-xl font-bold text-slate-800">{records.length}</p>
             </div>
           </div>
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
-              <AlertTriangle size={24} />
+            <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0">
+              <AlertTriangle size={20} />
             </div>
             <div>
-              <p className="text-sm text-slate-500 font-medium">Atenção Necessária</p>
-              <p className="text-2xl font-bold text-slate-800">
+              <p className="text-xs text-slate-500 font-medium">Atenção</p>
+              <p className="text-xl font-bold text-slate-800">
                 {records.filter(r => r.pain >= 7 || r.fatigue >= 7 || parseInt(r.hydration) >= 6).length}
               </p>
             </div>
           </div>
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
-              <CheckCircle size={24} />
+            <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0">
+              <CheckCircle size={20} />
             </div>
             <div>
-              <p className="text-sm text-slate-500 font-medium">Bons Resultados</p>
-              <p className="text-2xl font-bold text-slate-800">
+              <p className="text-xs text-slate-500 font-medium">Bons</p>
+              <p className="text-xl font-bold text-slate-800">
                 {records.filter(r => r.status === 'Bom' || r.status === 'Continue assim').length}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Desktop Table / Mobile Cards */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* Mobile View: Cards | Desktop View: Table */}
+        <div className="md:hidden space-y-3">
+          {filteredRecords.map((record) => (
+            <div key={record.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-bold text-slate-800">{record.user}</p>
+                  <p className="text-xs text-slate-500">{new Date(record.date).toLocaleDateString('pt-BR')}</p>
+                </div>
+                <button 
+                  onClick={() => openWhatsApp(record.phone, record.user)}
+                  className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center"
+                >
+                  <MessageCircle size={16} />
+                </button>
+              </div>
+              
+              <div className="flex gap-4 text-center">
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">Dor</p>
+                  <p className={`font-bold ${record.pain >= 7 ? 'text-red-500' : 'text-slate-700'}`}>{record.pain}</p>
+                </div>
+                <div className="flex-1 border-x border-slate-100">
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">Fadiga</p>
+                  <p className={`font-bold ${record.fatigue >= 7 ? 'text-red-500' : 'text-slate-700'}`}>{record.fatigue}</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">Hidrat.</p>
+                  <p className={`font-bold ${parseInt(record.hydration) >= 6 ? 'text-red-500' : 'text-slate-700'}`}>{record.hydration}</p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <select 
+                  value={record.status}
+                  onChange={(e) => updateStatus(record.id, e.target.value)}
+                  className={`w-full text-xs rounded-lg px-3 py-2 font-bold border-none outline-none cursor-pointer ${
+                    STATUS_OPTIONS.find(o => o.label === record.status)?.color || 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {STATUS_OPTIONS.map(opt => (
+                    <option key={opt.label} value={opt.label}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-sm text-slate-500">
                   <th className="p-4 font-medium">Atleta</th>
                   <th className="p-4 font-medium">Data</th>
-                  <th className="p-4 font-medium text-center">Dor (0-10)</th>
-                  <th className="p-4 font-medium text-center">Fadiga (0-10)</th>
-                  <th className="p-4 font-medium text-center">Hidratação</th>
-                  <th className="p-4 font-medium">Feedback / Status</th>
+                  <th className="p-4 font-medium text-center">Dor</th>
+                  <th className="p-4 font-medium text-center">Fadiga</th>
+                  <th className="p-4 font-medium text-center">Hidrat.</th>
+                  <th className="p-4 font-medium">Feedback</th>
                   <th className="p-4 font-medium text-right">Ação</th>
                 </tr>
               </thead>
@@ -179,7 +229,7 @@ export default function AdminDashboard() {
                       <p className="text-xs text-slate-500">{record.phone}</p>
                     </td>
                     <td className="p-4 text-sm text-slate-600">
-                      {new Date(record.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      {new Date(record.date).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="p-4 text-center">
                       <span className={`inline-flex w-8 h-8 items-center justify-center rounded-full font-bold text-sm ${
@@ -225,20 +275,12 @@ export default function AdminDashboard() {
                       <button 
                         onClick={() => openWhatsApp(record.phone, record.user)}
                         className="inline-flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-full hover:bg-green-600 transition shadow-sm"
-                        title="Enviar WhatsApp"
                       >
                         <MessageCircle size={20} />
                       </button>
                     </td>
                   </tr>
                 ))}
-                {filteredRecords.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-500">
-                      Nenhum registro encontrado.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
