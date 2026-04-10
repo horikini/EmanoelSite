@@ -28,29 +28,31 @@ export default function Landing() {
       </div>
 
       {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-50 p-4 flex flex-col items-center gap-4 bg-gradient-to-b from-slate-950/80 to-transparent">
-        <div className="flex items-center justify-center w-full">
-          <img 
-            src="/logo.png" 
-            alt="ELS POWER Logo" 
-            className="h-12 w-auto object-contain drop-shadow-lg"
-            onError={(e) => {
-              const target = e.currentTarget;
-              if (target.src.endsWith('.png')) target.src = '/logo.jpeg';
-              else if (target.src.endsWith('.jpeg')) target.src = '/logo.jpg';
-              else {
-                target.style.display = 'none';
-                document.getElementById('fallback-logo')!.style.display = 'flex';
-              }
-            }}
-          />
-          <div id="fallback-logo" className="hidden items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl flex items-center justify-center font-black text-xl italic shadow-lg shadow-orange-500/20 text-white">
-              EP
+      <header className="absolute top-0 left-0 right-0 z-50 p-4 flex flex-col items-center gap-6 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent pb-12">
+        <div className="flex items-center justify-center w-full mt-4">
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 p-5 rounded-[2rem] shadow-[0_0_50px_rgba(249,115,22,0.15)] flex items-center justify-center">
+            <img 
+              src="/logo.png" 
+              alt="ELS POWER Logo" 
+              className="h-28 md:h-36 w-auto object-contain drop-shadow-2xl"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (target.src.endsWith('.png')) target.src = '/logo.jpeg';
+                else if (target.src.endsWith('.jpeg')) target.src = '/logo.jpg';
+                else {
+                  target.style.display = 'none';
+                  document.getElementById('fallback-logo')!.style.display = 'flex';
+                }
+              }}
+            />
+            <div id="fallback-logo" className="hidden items-center gap-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-700 rounded-2xl flex items-center justify-center font-black text-3xl italic shadow-lg shadow-orange-500/20 text-white">
+                EP
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Link
             to="/login"
             className="bg-orange-500/10 border border-orange-500/50 text-orange-400 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-orange-500 hover:text-white transition-all"
@@ -67,7 +69,7 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 min-h-[90vh] flex flex-col justify-center overflow-hidden">
+      <section className="relative pt-56 pb-20 px-4 min-h-[90vh] flex flex-col justify-center overflow-hidden">
         {/* Background Image & Overlay */}
         <div className="absolute inset-0 z-0">
           <img
@@ -102,20 +104,6 @@ export default function Landing() {
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col items-start text-left">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            className="mb-8 md:hidden"
-          >
-            <img 
-              src="/logo.png" 
-              alt="ELS POWER" 
-              className="h-32 w-auto object-contain"
-              onError={(e) => (e.currentTarget.style.display = 'none')}
-            />
-          </motion.div>
-
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -474,17 +462,30 @@ export default function Landing() {
       </section>
       
       {/* Footer */}
-      <footer className="relative z-10 bg-slate-950/80 backdrop-blur-md py-12 px-4 text-center border-t border-slate-900">
-        <div className="flex items-center justify-center gap-2 mb-6 opacity-50">
-          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center font-black text-sm italic text-white">EP</div>
-          <span className="font-black text-lg tracking-tighter italic text-white">ELS POWER</span>
+      <footer className="relative z-10 bg-slate-950/80 backdrop-blur-md text-center border-t border-slate-900">
+        {/* Fita Branca com Logo */}
+        <div className="w-full bg-white py-4 flex justify-center items-center shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+          <img 
+            src="/logo.png" 
+            alt="ELS POWER Logo" 
+            className="h-12 w-auto object-contain"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (target.src.endsWith('.png')) target.src = '/logo.jpeg';
+              else if (target.src.endsWith('.jpeg')) target.src = '/logo.jpg';
+              else target.style.display = 'none';
+            }}
+          />
         </div>
-        <div className="space-y-2 mb-8 text-slate-400 text-sm">
-          <p className="font-bold text-slate-200 uppercase tracking-widest">Barretos - SP</p>
-          <p>Atendimento Online</p>
-          <p>Acompanhamento Virtual</p>
+        
+        <div className="py-10 px-4">
+          <div className="space-y-2 mb-6 text-slate-400 text-sm">
+            <p className="font-bold text-slate-200 uppercase tracking-widest">Barretos - SP</p>
+            <p>Atendimento Online</p>
+            <p>Acompanhamento Virtual</p>
+          </div>
+          <p className="text-slate-600 text-xs">© {new Date().getFullYear()} ELS POWER Football Club. Todos os direitos reservados.</p>
         </div>
-        <p className="text-slate-600 text-xs">© {new Date().getFullYear()} ELS POWER Football Club. Todos os direitos reservados.</p>
       </footer>
     </div>
   );
