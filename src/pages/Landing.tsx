@@ -13,8 +13,15 @@ export default function Landing() {
             alt="ELS POWER Logo" 
             className="h-16 w-auto object-contain drop-shadow-lg"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              document.getElementById('fallback-logo')!.style.display = 'flex';
+              const target = e.currentTarget;
+              if (target.src.endsWith('.png')) {
+                target.src = '/logo.jpg';
+              } else if (target.src.endsWith('.jpg')) {
+                target.src = '/logo.jpeg';
+              } else {
+                target.style.display = 'none';
+                document.getElementById('fallback-logo')!.style.display = 'flex';
+              }
             }}
           />
           <div id="fallback-logo" className="hidden items-center gap-2">
@@ -41,7 +48,12 @@ export default function Landing() {
             alt="Soccer Training"
             className="w-full h-full object-cover opacity-30"
             onError={(e) => {
-              e.currentTarget.src = "https://images.unsplash.com/photo-1518605368461-1e1252220a4c?q=80&w=2000&auto=format&fit=crop";
+              const target = e.currentTarget;
+              if (target.src.includes('/bg1.jpg')) {
+                target.src = '/bg1.png';
+              } else if (target.src.includes('/bg1.png')) {
+                target.src = "https://images.unsplash.com/photo-1518605368461-1e1252220a4c?q=80&w=2000&auto=format&fit=crop";
+              }
             }}
             referrerPolicy="no-referrer"
           />

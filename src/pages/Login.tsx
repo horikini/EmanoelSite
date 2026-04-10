@@ -31,8 +31,15 @@ export default function Login() {
             alt="ELS POWER Logo" 
             className="h-16 w-auto object-contain mb-4"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              document.getElementById('fallback-login-logo')!.style.display = 'block';
+              const target = e.currentTarget;
+              if (target.src.endsWith('.png')) {
+                target.src = '/logo.jpg';
+              } else if (target.src.endsWith('.jpg')) {
+                target.src = '/logo.jpeg';
+              } else {
+                target.style.display = 'none';
+                document.getElementById('fallback-login-logo')!.style.display = 'block';
+              }
             }}
           />
           <div id="fallback-login-logo" className="hidden text-2xl font-black italic text-slate-800 mb-2">

@@ -87,8 +87,15 @@ export default function UserDashboard() {
             alt="Logo" 
             className="h-8 w-auto object-contain"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              document.getElementById('fallback-user-logo')!.style.display = 'block';
+              const target = e.currentTarget;
+              if (target.src.endsWith('.png')) {
+                target.src = '/logo.jpg';
+              } else if (target.src.endsWith('.jpg')) {
+                target.src = '/logo.jpeg';
+              } else {
+                target.style.display = 'none';
+                document.getElementById('fallback-user-logo')!.style.display = 'block';
+              }
             }}
           />
           <div id="fallback-user-logo" className="hidden">

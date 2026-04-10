@@ -78,8 +78,15 @@ export default function AdminDashboard() {
             alt="Logo" 
             className="h-8 w-auto object-contain"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              document.getElementById('fallback-admin-logo')!.style.display = 'flex';
+              const target = e.currentTarget;
+              if (target.src.endsWith('.png')) {
+                target.src = '/logo.jpg';
+              } else if (target.src.endsWith('.jpg')) {
+                target.src = '/logo.jpeg';
+              } else {
+                target.style.display = 'none';
+                document.getElementById('fallback-admin-logo')!.style.display = 'flex';
+              }
             }}
           />
           <div id="fallback-admin-logo" className="hidden w-8 h-8 bg-orange-500 rounded-md items-center justify-center font-bold italic">EP</div>
