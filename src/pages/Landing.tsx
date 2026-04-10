@@ -28,37 +28,42 @@ export default function Landing() {
       </div>
 
       {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-50 p-4 md:px-8 flex justify-between items-center bg-gradient-to-b from-slate-950/80 to-transparent">
-        <div className="flex items-center gap-2">
+      <header className="absolute top-0 left-0 right-0 z-50 p-4 flex flex-col items-center gap-4 bg-gradient-to-b from-slate-950/80 to-transparent">
+        <div className="flex items-center justify-center w-full">
           <img 
-            src="/logo.jpeg" 
+            src="/logo.png" 
             alt="ELS POWER Logo" 
-            className="h-16 w-auto object-contain drop-shadow-lg"
+            className="h-12 w-auto object-contain drop-shadow-lg"
             onError={(e) => {
               const target = e.currentTarget;
-              if (target.src.endsWith('.jpeg')) {
-                target.src = '/logo.jpg';
-              } else if (target.src.endsWith('.jpg')) {
-                target.src = '/logo.png';
-              } else {
+              if (target.src.endsWith('.png')) target.src = '/logo.jpeg';
+              else if (target.src.endsWith('.jpeg')) target.src = '/logo.jpg';
+              else {
                 target.style.display = 'none';
                 document.getElementById('fallback-logo')!.style.display = 'flex';
               }
             }}
           />
           <div id="fallback-logo" className="hidden items-center gap-2">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl flex items-center justify-center font-black text-2xl italic shadow-lg shadow-orange-500/20">
-              ⚽
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl flex items-center justify-center font-black text-xl italic shadow-lg shadow-orange-500/20 text-white">
+              EP
             </div>
-            <span className="font-black text-2xl tracking-tighter italic text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">ELS POWER</span>
           </div>
         </div>
-        <Link
-          to="/login"
-          className="bg-orange-500/10 border border-orange-500/50 text-orange-400 px-6 py-2 rounded-full text-sm font-bold hover:bg-orange-500 hover:text-white transition-all shadow-[0_0_15px_-5px_rgba(249,115,22,0.4)]"
-        >
-          Área do Atleta
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/login"
+            className="bg-orange-500/10 border border-orange-500/50 text-orange-400 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-orange-500 hover:text-white transition-all"
+          >
+            Acesso Atleta
+          </Link>
+          <Link
+            to="/login"
+            className="bg-slate-800/50 border border-slate-700 text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-slate-700 transition-all"
+          >
+            Equipe
+          </Link>
+        </div>
       </header>
 
       {/* Hero Section */}
@@ -66,17 +71,9 @@ export default function Landing() {
         {/* Background Image & Overlay */}
         <div className="absolute inset-0 z-0">
           <img
-            src="/bg1.jpg"
+            src="https://images.unsplash.com/photo-1518605368461-1e1252220a4c?q=80&w=2000&auto=format&fit=crop"
             alt="Soccer Training"
             className="w-full h-full object-cover opacity-30"
-            onError={(e) => {
-              const target = e.currentTarget;
-              if (target.src.includes('/bg1.jpg')) {
-                target.src = '/bg1.png';
-              } else if (target.src.includes('/bg1.png')) {
-                target.src = "https://images.unsplash.com/photo-1518605368461-1e1252220a4c?q=80&w=2000&auto=format&fit=crop";
-              }
-            }}
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
@@ -103,6 +100,20 @@ export default function Landing() {
 
         <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col items-start text-left">
           <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            className="mb-8 md:hidden"
+          >
+            <img 
+              src="/logo.png" 
+              alt="ELS POWER" 
+              className="h-32 w-auto object-contain"
+              onError={(e) => (e.currentTarget.style.display = 'none')}
+            />
+          </motion.div>
+
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
@@ -116,7 +127,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter leading-[1.1] mb-6"
+            className="text-4xl font-black uppercase italic tracking-tighter leading-[1.1] mb-6"
           >
             Domine o Jogo. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-orange-500 to-yellow-500">
@@ -128,7 +139,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-slate-300 text-lg md:text-xl mb-10 max-w-2xl leading-relaxed"
+            className="text-slate-300 text-base mb-8 max-w-2xl leading-relaxed"
           >
             Preparação física e técnica especializada em futebol. Transformamos seu potencial em performance real dentro de campo com metodologia comprovada.
           </motion.p>
@@ -137,14 +148,20 @@ export default function Landing() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
+            className="flex flex-col gap-3 w-full"
           >
             <a
               href="#treinamentos"
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-lg py-4 px-8 rounded-2xl shadow-[0_0_30px_-5px_rgba(249,115,22,0.4)] hover:scale-[1.02] hover:shadow-[0_0_40px_-5px_rgba(249,115,22,0.6)] active:scale-[0.98] transition-all"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg active:scale-[0.98] transition-all"
+            >
+              INICIAR TREINAMENTO
+              <ChevronRight size={20} />
+            </a>
+            <a
+              href="#treinamentos"
+              className="flex items-center justify-center gap-2 bg-slate-900 border border-slate-800 text-white font-bold text-base py-3 px-6 rounded-xl active:scale-[0.98] transition-all"
             >
               CONHEÇA O MÉTODO
-              <ChevronRight size={24} />
             </a>
           </motion.div>
         </div>
@@ -200,6 +217,101 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Treinamento Funcional e Força */}
+      <section className="py-24 px-4 relative z-10 bg-slate-950 overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-24">
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-sm font-bold border border-orange-500/20">
+                <Zap size={16} />
+                <span>MOVIMENTO E AGILIDADE</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black italic leading-tight uppercase">
+                Treinamento <span className="text-orange-500">Funcional</span>
+              </h2>
+              <p className="text-slate-300 text-lg leading-relaxed">
+                Desenvolvemos padrões de movimento específicos do futebol. Nosso funcional não é apenas exercício, é transferência direta para o campo: estabilidade, coordenação e controle motor sob fadiga.
+              </p>
+              <div className="flex gap-4">
+                <div className="flex-1 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-orange-500 font-bold text-xl">Core</p>
+                  <p className="text-slate-400 text-sm">Estabilidade central para proteção e potência.</p>
+                </div>
+                <div className="flex-1 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-orange-500 font-bold text-xl">SAQ</p>
+                  <p className="text-slate-400 text-sm">Speed, Agility and Quickness (Velocidade e Agilidade).</p>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="relative group"
+            >
+              <div className="absolute -inset-4 bg-orange-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <img 
+                src="https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=1000&auto=format&fit=crop" 
+                alt="Treino Funcional" 
+                className="relative rounded-3xl border border-slate-800 shadow-2xl w-full h-[450px] object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
+            </motion.div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="relative group order-2 lg:order-1"
+            >
+              <div className="absolute -inset-4 bg-blue-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <img 
+                src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=1000&auto=format&fit=crop" 
+                alt="Treino de Força" 
+                className="relative rounded-3xl border border-slate-800 shadow-2xl w-full h-[450px] object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-6 order-1 lg:order-2"
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-sm font-bold border border-blue-500/20">
+                <Dumbbell size={16} />
+                <span>POTÊNCIA E RESILIÊNCIA</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black italic leading-tight uppercase">
+                Força e <span className="text-blue-500">Reabilitação</span>
+              </h2>
+              <p className="text-slate-300 text-lg leading-relaxed">
+                A força é a base de todas as capacidades físicas. Nosso programa de força foca em potência explosiva e na reabilitação proativa, garantindo que você volte de lesões mais forte do que antes.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
+                  <ShieldCheck className="text-blue-500" size={24} />
+                  <p className="text-slate-200 font-medium">Protocolos de Retorno ao Jogo (Return to Play)</p>
+                </div>
+                <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
+                  <Zap className="text-blue-500" size={24} />
+                  <p className="text-slate-200 font-medium">Treinamento de Força Reativa e Pliometria</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Planilha e Acompanhamento */}
       <section className="py-24 px-4 relative z-10 bg-slate-900 overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
@@ -231,13 +343,80 @@ export default function Landing() {
           <div className="flex-1 w-full relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 blur-[100px] opacity-20 rounded-full" />
             <img 
-              src="/bg2.jpg" 
+              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop" 
               alt="Análise de Dados" 
               className="relative rounded-3xl border border-slate-700 shadow-2xl w-full object-cover h-[400px]"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop";
-              }}
+              referrerPolicy="no-referrer"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Galeria de Treinamento em Ação */}
+      <section className="py-24 px-4 relative z-10 bg-slate-950">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-black italic mb-4">TREINAMENTO EM AÇÃO</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto text-lg">Veja como preparamos nossos atletas para o topo do futebol mundial.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[800px] md:h-[600px]">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-3xl border border-slate-800"
+            >
+              <img 
+                src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop" 
+                alt="Performance de Jogo" 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+              <div className="absolute bottom-6 left-6">
+                <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Alta Intensidade</span>
+                <h4 className="text-2xl font-bold mt-2">Simulação de Jogo Real</h4>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="relative group overflow-hidden rounded-3xl border border-slate-800"
+            >
+              <img 
+                src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?q=80&w=800&auto=format&fit=crop" 
+                alt="Treino de Agilidade" 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+              <div className="absolute bottom-4 left-4">
+                <h4 className="text-lg font-bold">Agilidade e Coordenação</h4>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="relative group overflow-hidden rounded-3xl border border-slate-800"
+            >
+              <img 
+                src="https://images.unsplash.com/photo-1526232761682-d26e03ac148e?q=80&w=800&auto=format&fit=crop" 
+                alt="Explosão Muscular" 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+              <div className="absolute bottom-4 left-4">
+                <h4 className="text-lg font-bold">Potência Explosiva</h4>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -267,11 +446,11 @@ export default function Landing() {
           <div className="flex-1 w-full relative">
             <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 blur-[100px] opacity-20 rounded-full" />
             <img 
-              src="/bg3.jpg" 
-              alt="Nutrição Esportiva" 
-              className="relative rounded-3xl border border-slate-700 shadow-2xl w-full object-cover h-[400px]"
+              src="https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?q=80&w=1000&auto=format&fit=crop" 
+              alt="Plano Nutricional e Fita Métrica" 
+              className="relative rounded-3xl border border-slate-700 shadow-2xl w-full object-cover h-[300px]"
               onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=1000&auto=format&fit=crop";
+                e.currentTarget.src = "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?q=80&w=1000&auto=format&fit=crop";
               }}
             />
           </div>
@@ -299,12 +478,17 @@ export default function Landing() {
       </section>
       
       {/* Footer */}
-      <footer className="bg-slate-950 py-8 text-center border-t border-slate-900">
-        <div className="flex items-center justify-center gap-2 mb-4 opacity-50">
+      <footer className="bg-slate-950 py-12 px-4 text-center border-t border-slate-900">
+        <div className="flex items-center justify-center gap-2 mb-6 opacity-50">
           <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center font-black text-sm italic text-white">EP</div>
           <span className="font-black text-lg tracking-tighter italic text-white">ELS POWER</span>
         </div>
-        <p className="text-slate-600 text-sm">© {new Date().getFullYear()} ELS POWER Football Club. Todos os direitos reservados.</p>
+        <div className="space-y-2 mb-8 text-slate-400 text-sm">
+          <p className="font-bold text-slate-200 uppercase tracking-widest">Barretos - SP</p>
+          <p>Atendimento Online</p>
+          <p>Acompanhamento Virtual</p>
+        </div>
+        <p className="text-slate-600 text-xs">© {new Date().getFullYear()} ELS POWER Football Club. Todos os direitos reservados.</p>
       </footer>
     </div>
   );
