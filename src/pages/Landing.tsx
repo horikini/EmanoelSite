@@ -35,21 +35,7 @@ export default function Landing() {
               src="/logo.png" 
               alt="ELS POWER Logo" 
               className="h-28 md:h-36 w-auto object-contain drop-shadow-2xl"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (target.src.endsWith('.png')) target.src = '/logo.jpeg';
-                else if (target.src.endsWith('.jpeg')) target.src = '/logo.jpg';
-                else {
-                  target.style.display = 'none';
-                  document.getElementById('fallback-logo')!.style.display = 'flex';
-                }
-              }}
             />
-            <div id="fallback-logo" className="hidden items-center gap-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-700 rounded-2xl flex items-center justify-center font-black text-3xl italic shadow-lg shadow-orange-500/20 text-white">
-                EP
-              </div>
-            </div>
           </div>
         </div>
         <div className="flex gap-3">
@@ -469,12 +455,6 @@ export default function Landing() {
             src="/logo.png" 
             alt="ELS POWER Logo" 
             className="h-12 w-auto object-contain"
-            onError={(e) => {
-              const target = e.currentTarget;
-              if (target.src.endsWith('.png')) target.src = '/logo.jpeg';
-              else if (target.src.endsWith('.jpeg')) target.src = '/logo.jpg';
-              else target.style.display = 'none';
-            }}
           />
         </div>
         
