@@ -35,6 +35,9 @@ export default function Landing() {
               src="/logo.png" 
               alt="ELS POWER Logo" 
               className="h-28 md:h-36 w-auto object-contain drop-shadow-2xl"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </div>
         </div>
@@ -59,12 +62,9 @@ export default function Landing() {
         {/* Background Image & Overlay */}
         <div className="absolute inset-0 z-0">
           <img
-            src="/treino1.jpg"
+            src="https://images.unsplash.com/photo-1518605368461-1e1252220a4c?q=80&w=2000&auto=format&fit=crop"
             alt="Soccer Training"
             className="w-full h-full object-cover opacity-30"
-            onError={(e) => {
-              e.currentTarget.src = "https://images.unsplash.com/photo-1518605368461-1e1252220a4c?q=80&w=2000&auto=format&fit=crop";
-            }}
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
@@ -233,12 +233,9 @@ export default function Landing() {
             >
               <div className="absolute -inset-4 bg-orange-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               <img 
-                src="/treino2.jpg" 
+                src="https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=1000&auto=format&fit=crop" 
                 alt="Treino Funcional" 
                 className="relative rounded-3xl border border-slate-800 shadow-2xl w-full h-[450px] object-cover grayscale hover:grayscale-0 transition-all duration-700"
-                onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=1000&auto=format&fit=crop";
-                }}
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
@@ -254,12 +251,9 @@ export default function Landing() {
             >
               <div className="absolute -inset-4 bg-blue-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               <img 
-                src="/treino3.jpg" 
+                src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=1000&auto=format&fit=crop" 
                 alt="Treino de Força" 
                 className="relative rounded-3xl border border-slate-800 shadow-2xl w-full h-[450px] object-cover grayscale hover:grayscale-0 transition-all duration-700"
-                onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=1000&auto=format&fit=crop";
-                }}
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-slate-950/80 to-transparent opacity-60" />
@@ -455,6 +449,9 @@ export default function Landing() {
             src="/logo.png" 
             alt="ELS POWER Logo" 
             className="h-12 w-auto object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
           />
         </div>
         

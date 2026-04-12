@@ -11,10 +11,10 @@ type Record = {
   email?: string;
   dob?: string;
   city?: string;
-  trainingType?: string;
+  registrationDate?: string;
+  targetTraining?: string;
   position1?: string;
   position2?: string;
-  registrationDate?: string;
   pain: number;
   fatigue: number;
   hydration: string;
@@ -35,9 +35,7 @@ export default function AdminDashboard() {
   const [records, setRecords] = useState<Record[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newAthlete, setNewAthlete] = useState({ 
-    name: '', dob: '', email: '', phone: '', city: '', trainingType: 'Força e Potência', position1: 'Atacante', position2: 'Ponta' 
-  });
+  const [newAthlete, setNewAthlete] = useState({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -57,6 +55,11 @@ export default function AdminDashboard() {
         date: new Date(Date.now() - Math.random() * 1000000000).toISOString(),
         user: name,
         phone: '55119' + Math.floor(10000000 + Math.random() * 90000000),
+        city: 'São Paulo',
+        registrationDate: new Date().toISOString(),
+        targetTraining: 'Preparação Física',
+        position1: 'Meio-Campo',
+        position2: 'Atacante',
         pain: Math.floor(Math.random() * 11),
         fatigue: Math.floor(Math.random() * 11),
         hydration: String(Math.floor(1 + Math.random() * 8)),
@@ -94,10 +97,10 @@ export default function AdminDashboard() {
       email: newAthlete.email,
       dob: newAthlete.dob,
       city: newAthlete.city,
-      trainingType: newAthlete.trainingType,
+      registrationDate: new Date().toISOString(),
+      targetTraining: newAthlete.targetTraining,
       position1: newAthlete.position1,
       position2: newAthlete.position2,
-      registrationDate: new Date().toISOString(),
       pain: 0,
       fatigue: 0,
       hydration: "1",
@@ -107,7 +110,7 @@ export default function AdminDashboard() {
     setRecords(updated);
     localStorage.setItem('els_records', JSON.stringify(updated));
     setIsModalOpen(false);
-    setNewAthlete({ name: '', dob: '', email: '', phone: '', city: '', trainingType: 'Força e Potência', position1: 'Atacante', position2: 'Ponta' });
+    setNewAthlete({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
   };
 
   const filteredRecords = records.filter(r => 
@@ -356,77 +359,133 @@ export default function AdminDashboard() {
 
       {/* Modal de Cadastro */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg p-5 shadow-xl relative border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl p-6 shadow-xl relative border border-slate-200 dark:border-slate-800 my-8">
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-full p-1"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-full p-1"
             >
-              <X size={16} />
+              <X size={20} />
             </button>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-              <User className="text-orange-500" size={20} />
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+              <User className="text-orange-500" size={24} />
               Cadastrar Novo Atleta
             </h3>
-            <form onSubmit={handleRegister} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sm:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">Nome Completo</label>
-                <input required type="text" placeholder="Ex: João Silva" value={newAthlete.name} onChange={e => setNewAthlete({...newAthlete, name: e.target.value})} className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">Data de Nascimento</label>
-                <input required type="date" value={newAthlete.dob} onChange={e => setNewAthlete({...newAthlete, dob: e.target.value})} className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">Cidade</label>
-                <input required type="text" placeholder="Ex: Barretos - SP" value={newAthlete.city} onChange={e => setNewAthlete({...newAthlete, city: e.target.value})} className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">E-mail</label>
-                <input required type="email" placeholder="joao@email.com" value={newAthlete.email} onChange={e => setNewAthlete({...newAthlete, email: e.target.value})} className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">Telefone / WhatsApp</label>
-                <input required type="tel" placeholder="(00) 00000-0000" value={newAthlete.phone} onChange={e => setNewAthlete({...newAthlete, phone: e.target.value})} className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">Tipo de Treinamento Alvo</label>
-                <select value={newAthlete.trainingType} onChange={e => setNewAthlete({...newAthlete, trainingType: e.target.value})} className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all">
-                  <option value="Força e Potência">Força e Potência</option>
-                  <option value="Resistência">Resistência</option>
-                  <option value="Agilidade e Velocidade">Agilidade e Velocidade</option>
-                  <option value="Reabilitação">Reabilitação</option>
-                  <option value="Manutenção">Manutenção</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">Posição 1</label>
-                <select value={newAthlete.position1} onChange={e => setNewAthlete({...newAthlete, position1: e.target.value})} className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all">
-                  <option value="Goleiro">Goleiro</option>
-                  <option value="Zagueiro">Zagueiro</option>
-                  <option value="Lateral">Lateral</option>
-                  <option value="Volante">Volante</option>
-                  <option value="Meio-Campo">Meio-Campo</option>
-                  <option value="Ponta">Ponta</option>
-                  <option value="Atacante">Atacante</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">Posição 2</label>
-                <select value={newAthlete.position2} onChange={e => setNewAthlete({...newAthlete, position2: e.target.value})} className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all">
-                  <option value="Nenhuma">Nenhuma</option>
-                  <option value="Goleiro">Goleiro</option>
-                  <option value="Zagueiro">Zagueiro</option>
-                  <option value="Lateral">Lateral</option>
-                  <option value="Volante">Volante</option>
-                  <option value="Meio-Campo">Meio-Campo</option>
-                  <option value="Ponta">Ponta</option>
-                  <option value="Atacante">Atacante</option>
-                </select>
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Completo</label>
+                  <input 
+                    required 
+                    type="text" 
+                    placeholder="Ex: João Silva"
+                    value={newAthlete.name} 
+                    onChange={e => setNewAthlete({...newAthlete, name: e.target.value})} 
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data de Nascimento</label>
+                  <input 
+                    required 
+                    type="date" 
+                    value={newAthlete.dob} 
+                    onChange={e => setNewAthlete({...newAthlete, dob: e.target.value})} 
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">E-mail</label>
+                  <input 
+                    required 
+                    type="email" 
+                    placeholder="joao@email.com"
+                    value={newAthlete.email} 
+                    onChange={e => setNewAthlete({...newAthlete, email: e.target.value})} 
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Telefone / WhatsApp</label>
+                  <input 
+                    required 
+                    type="tel" 
+                    placeholder="(00) 00000-0000"
+                    value={newAthlete.phone} 
+                    onChange={e => setNewAthlete({...newAthlete, phone: e.target.value})} 
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Cidade</label>
+                  <input 
+                    required 
+                    type="text" 
+                    placeholder="Ex: Barretos"
+                    value={newAthlete.city} 
+                    onChange={e => setNewAthlete({...newAthlete, city: e.target.value})} 
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo de Treinamento Alvo</label>
+                  <select 
+                    required
+                    value={newAthlete.targetTraining} 
+                    onChange={e => setNewAthlete({...newAthlete, targetTraining: e.target.value})} 
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="Preparação Física">Preparação Física</option>
+                    <option value="Desenvolvimento Técnico">Desenvolvimento Técnico</option>
+                    <option value="Prevenção de Lesões">Prevenção de Lesões</option>
+                    <option value="Inteligência Aguda">Inteligência Aguda</option>
+                    <option value="Força e Reabilitação">Força e Reabilitação</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Posição 1</label>
+                  <select 
+                    required
+                    value={newAthlete.position1} 
+                    onChange={e => setNewAthlete({...newAthlete, position1: e.target.value})} 
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="Goleiro">Goleiro</option>
+                    <option value="Zagueiro">Zagueiro</option>
+                    <option value="Lateral Direito">Lateral Direito</option>
+                    <option value="Lateral Esquerdo">Lateral Esquerdo</option>
+                    <option value="Volante">Volante</option>
+                    <option value="Meio-Campo">Meio-Campo</option>
+                    <option value="Ponta Direita">Ponta Direita</option>
+                    <option value="Ponta Esquerda">Ponta Esquerda</option>
+                    <option value="Atacante / Centroavante">Atacante / Centroavante</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Posição 2 (Opcional)</label>
+                  <select 
+                    value={newAthlete.position2} 
+                    onChange={e => setNewAthlete({...newAthlete, position2: e.target.value})} 
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="Goleiro">Goleiro</option>
+                    <option value="Zagueiro">Zagueiro</option>
+                    <option value="Lateral Direito">Lateral Direito</option>
+                    <option value="Lateral Esquerdo">Lateral Esquerdo</option>
+                    <option value="Volante">Volante</option>
+                    <option value="Meio-Campo">Meio-Campo</option>
+                    <option value="Ponta Direita">Ponta Direita</option>
+                    <option value="Ponta Esquerda">Ponta Esquerda</option>
+                    <option value="Atacante / Centroavante">Atacante / Centroavante</option>
+                  </select>
+                </div>
               </div>
               <button 
                 type="submit" 
-                className="sm:col-span-2 w-full bg-orange-500 text-white font-bold py-2 text-xs rounded-lg hover:bg-orange-600 active:scale-[0.98] transition-all mt-2 shadow-sm"
+                className="w-full bg-orange-500 text-white font-bold py-2.5 text-sm rounded-xl hover:bg-orange-600 active:scale-[0.98] transition-all mt-6 shadow-lg shadow-orange-500/20"
               >
                 Salvar Cadastro
               </button>

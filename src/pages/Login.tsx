@@ -30,6 +30,9 @@ export default function Login() {
             src="/logo.png" 
             alt="ELS POWER Logo" 
             className="h-24 w-auto object-contain mb-4"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
           />
           <h1 className="text-2xl font-normal text-gray-900 dark:text-white mb-2">Fazer login</h1>
           <p className="text-gray-600 dark:text-slate-400 text-sm">Use sua Conta ELS POWER</p>
