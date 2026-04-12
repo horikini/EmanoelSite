@@ -672,9 +672,9 @@ export default function PatientProfile() {
                         { label: 'Coxa Dist.', value: selectedEval.measurements.distalThigh },
                         { label: 'Panturrilha', value: selectedEval.measurements.calf },
                       ].map((item, idx) => (
-                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col justify-center">
-                          <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase">{item.label}</p>
-                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.value}</p>
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col justify-center text-center">
+                          <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase mb-1">{item.label}</p>
+                          <p className="text-sm font-black text-slate-700 dark:text-slate-200">{item.value}</p>
                         </div>
                       ))}
                     </div>
@@ -815,17 +815,26 @@ export default function PatientProfile() {
 
 // Helper component for specific test rows
 function TestRow({ label, value, info, isAdmin }: { label: string, value?: number, info: string, isAdmin: boolean }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   return (
     <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
       <div className="flex items-center gap-2">
         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</span>
         {isAdmin && (
-          <div className="group relative flex items-center justify-center">
+          <div 
+            className="relative flex items-center justify-center"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            onClick={() => setShowTooltip(!showTooltip)}
+          >
             <HelpCircle size={12} className="text-slate-400 cursor-help" />
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none shadow-xl">
-              {info}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-            </div>
+            {showTooltip && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-slate-800 text-white text-[10px] rounded-lg z-50 shadow-xl">
+                {info}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+              </div>
+            )}
           </div>
         )}
       </div>
