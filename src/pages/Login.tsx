@@ -15,6 +15,58 @@ export default function Login() {
       localStorage.setItem('userRole', 'admin');
       navigate('/admin');
     } else if (username === 'usuario' && password === 'usuario') {
+      // Initialize mock data if not exists to ensure João Atleta profile works
+      const saved = localStorage.getItem('els_records');
+      if (!saved) {
+        const mockRecords = [
+          {
+            id: 1,
+            date: new Date().toISOString(),
+            user: 'João Atleta',
+            phone: '5511999999999',
+            email: 'joao.atleta@email.com',
+            dob: '2002-05-15',
+            city: 'São Paulo',
+            registrationDate: '2023-01-10T10:00:00Z',
+            targetTraining: 'Futebol Profissional',
+            position1: 'Atacante',
+            position2: 'Ponta Direita',
+            pain: 2,
+            fatigue: 3,
+            hydration: "2",
+            status: "Bom"
+          }
+        ];
+        localStorage.setItem('els_records', JSON.stringify(mockRecords));
+      }
+
+      const savedApps = localStorage.getItem('els_appointments');
+      if (!savedApps) {
+        const mockApps = [
+          {
+            id: 'app-1',
+            athleteId: 1,
+            athleteName: 'João Atleta',
+            date: new Date().toISOString().split('T')[0],
+            time: '14:00',
+            type: 'Avaliação Física',
+            status: 'pending',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'app-2',
+            athleteId: 1,
+            athleteName: 'João Atleta',
+            date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+            time: '09:00',
+            type: 'Treino Técnico',
+            status: 'pending',
+            createdAt: new Date().toISOString()
+          }
+        ];
+        localStorage.setItem('els_appointments', JSON.stringify(mockApps));
+      }
+
       localStorage.setItem('userRole', 'user');
       navigate('/dashboard');
     } else {

@@ -1,2 +1,60 @@
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
+
+@keyframes border-trace-1 {
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
+}
+@keyframes border-trace-2 {
+  0% { top: -100%; }
+  50%, 100% { top: 100%; }
+}
+@keyframes border-trace-3 {
+  0% { right: -100%; }
+  50%, 100% { right: 100%; }
+}
+@keyframes border-trace-4 {
+  0% { bottom: -100%; }
+  50%, 100% { bottom: 100%; }
+}
+
+.neon-btn-span-1 {
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fff);
+  animation: border-trace-1 1s linear infinite;
+}
+.neon-btn-span-2 {
+  top: -100%;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, #fff);
+  animation: border-trace-2 1s linear infinite;
+  animation-delay: 0.25s;
+}
+.neon-btn-span-3 {
+  bottom: 0;
+  right: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(270deg, transparent, #fff);
+  animation: border-trace-3 1s linear infinite;
+  animation-delay: 0.5s;
+}
+.neon-btn-span-4 {
+  bottom: -100%;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(360deg, transparent, #fff);
+  animation: border-trace-4 1s linear infinite;
+  animation-delay: 0.75s;
+}
+
+.neon-btn-hover:hover, .neon-btn-hover:active {
+  box-shadow: 0 0 10px #f97316, 0 0 30px #f97316, 0 0 60px #f97316;
+  filter: brightness(1.1);
+}

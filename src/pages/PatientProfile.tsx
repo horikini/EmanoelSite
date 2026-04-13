@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Phone, Activity, Ruler, Timer, Calendar, HelpCircle, Lock, Unlock, Plus, BarChart2, FileText, Target, ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, User, Phone, Activity, Ruler, Timer, Calendar, HelpCircle, Lock, Unlock, Plus, BarChart2, FileText, Target, ChevronDown, ChevronUp, MoreHorizontal, Camera, Edit2, Save, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 // --- Interfaces ---
@@ -52,6 +52,7 @@ interface Patient {
   targetTraining?: string;
   position1?: string;
   position2?: string;
+  photo?: string;
   guardianName?: string;
   guardianPhone?: string;
   age: number;
@@ -71,44 +72,43 @@ interface Appointment {
 
 // --- Mock Data Generator ---
 const generateMockEvaluations = (): Evaluation[] => {
-  return [
-    {
-      id: 'eval-1',
-      date: '2023-10-15',
-      isLiberated: true,
-      weight: 72.5,
+  const evals: Evaluation[] = [];
+  const startDate = new Date('2023-06-01');
+  
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(startDate);
+    date.setMonth(startDate.getMonth() + i);
+    
+    evals.push({
+      id: `eval-${i}`,
+      date: date.toISOString().split('T')[0],
+      isLiberated: true, // Simulate all results liberated as requested
+      weight: 70 + Math.random() * 5,
       height: 178,
-      measurements: { neck: 38, chest: 98, biceps: 32, forearm: 28, waist: 82, abdomen: 84, hip: 96, proximalThigh: 56, medialThigh: 52, distalThigh: 44, calf: 38 },
-      skinfolds: { triceps: 12, subscapular: 14, chest: 8, axillary: 10, suprailiac: 15, abdominal: 18, thigh: 14, calf: 12, biceps: 6, iliacCrest: 16 },
-      specificTests: { velocidade10m: 1.75, velocidade20m: 3.10, yoyo: 1800, rast: 6.5, illinois: 15.2, arrowhead: 8.4, cmj: 42, dinamometria: 12, sprintBola: 3.4, slalom: 16.5, lspt: 45, wallPass: 22, finalizacao: 8, ssg: 85 },
-      urineColor: 2,
-      painLevel: 1
-    },
-    {
-      id: 'eval-2',
-      date: '2023-12-10',
-      isLiberated: true,
-      weight: 73.2,
-      height: 178,
-      measurements: { neck: 38.5, chest: 100, biceps: 33, forearm: 28.5, waist: 81, abdomen: 82, hip: 97, proximalThigh: 57, medialThigh: 53, distalThigh: 45, calf: 38.5 },
-      skinfolds: { triceps: 11, subscapular: 13, chest: 7, axillary: 9, suprailiac: 14, abdominal: 16, thigh: 13, calf: 11, biceps: 5, iliacCrest: 15 },
-      specificTests: { velocidade10m: 1.70, velocidade20m: 3.05, yoyo: 1920, rast: 6.2, illinois: 14.9, arrowhead: 8.2, cmj: 44, dinamometria: 10, sprintBola: 3.2, slalom: 15.8, lspt: 42, wallPass: 25, finalizacao: 9, ssg: 88 },
-      urineColor: 4,
-      painLevel: 3
-    },
-    {
-      id: 'eval-3',
-      date: '2024-02-20',
-      isLiberated: false,
-      weight: 74.0,
-      height: 178,
-      measurements: { neck: 39, chest: 102, biceps: 34, forearm: 29, waist: 80, abdomen: 80, hip: 98, proximalThigh: 58, medialThigh: 54, distalThigh: 46, calf: 39 },
-      skinfolds: { triceps: 10, subscapular: 12, chest: 6, axillary: 8, suprailiac: 12, abdominal: 14, thigh: 12, calf: 10, biceps: 4, iliacCrest: 13 },
-      specificTests: { velocidade10m: 1.65, velocidade20m: 2.98, yoyo: 2040, rast: 5.9, illinois: 14.5, arrowhead: 8.0, cmj: 47, dinamometria: 8, sprintBola: 3.0, slalom: 15.2, lspt: 38, wallPass: 28, finalizacao: 10, ssg: 92 },
-      urineColor: 1,
-      painLevel: 0
-    }
-  ];
+      measurements: { 
+        neck: 37 + Math.random(), chest: 95 + Math.random() * 5, biceps: 31 + Math.random() * 3, 
+        forearm: 27 + Math.random() * 2, waist: 78 + Math.random() * 5, abdomen: 80 + Math.random() * 5, 
+        hip: 94 + Math.random() * 4, proximalThigh: 54 + Math.random() * 4, medialThigh: 50 + Math.random() * 4, 
+        distalThigh: 42 + Math.random() * 3, calf: 37 + Math.random() * 2 
+      },
+      skinfolds: { 
+        triceps: 10 + Math.random() * 4, subscapular: 12 + Math.random() * 4, chest: 6 + Math.random() * 4, 
+        axillary: 8 + Math.random() * 4, suprailiac: 12 + Math.random() * 5, abdominal: 14 + Math.random() * 6, 
+        thigh: 12 + Math.random() * 4, calf: 10 + Math.random() * 3, biceps: 4 + Math.random() * 3, 
+        iliacCrest: 13 + Math.random() * 5 
+      },
+      specificTests: { 
+        velocidade10m: 1.8 - (i * 0.02), velocidade20m: 3.2 - (i * 0.03), yoyo: 1600 + (i * 50), 
+        rast: 6.8 - (i * 0.1), illinois: 16 - (i * 0.2), arrowhead: 8.8 - (i * 0.1), 
+        cmj: 38 + (i * 1), dinamometria: 15 - (i * 0.5), sprintBola: 3.6 - (i * 0.05), 
+        slalom: 17 - (i * 0.2), lspt: 50 - (i * 1), wallPass: 18 + i, 
+        finalizacao: 6 + Math.floor(i/2), ssg: 80 + i 
+      },
+      urineColor: Math.floor(Math.random() * 3) + 1,
+      painLevel: Math.floor(Math.random() * 3)
+    });
+  }
+  return evals;
 };
 
 // --- Calculations ---
@@ -210,13 +210,25 @@ export default function PatientProfile() {
     historico: true,
     avaliacao: true,
     especifica: true,
-    agendamentos: true
+    agendamentos: true,
+    tabela: false
   });
   const [bfEquation, setBfEquation] = useState<'pollock3' | 'pollock7' | 'guedes'>('pollock7');
   const [showAllDates, setShowAllDates] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editForm, setEditForm] = useState({
+    phone: '',
+    city: '',
+    targetTraining: '',
+    position1: '',
+    position2: '',
+    photo: ''
+  });
+
   const isAdmin = localStorage.getItem('userRole') === 'admin';
+  const isUser = localStorage.getItem('userRole') === 'user';
 
   useEffect(() => {
     // Load appointments
@@ -237,6 +249,7 @@ export default function PatientProfile() {
     let targetTraining = '';
     let position1 = '';
     let position2 = '';
+    let photo = '';
     
     if (savedRecords) {
       const records = JSON.parse(savedRecords);
@@ -250,6 +263,7 @@ export default function PatientProfile() {
         targetTraining = record.targetTraining || '';
         position1 = record.position1 || '';
         position2 = record.position2 || '';
+        photo = record.photo || '';
       }
     }
 
@@ -264,6 +278,7 @@ export default function PatientProfile() {
       targetTraining: targetTraining,
       position1: position1,
       position2: position2,
+      photo: photo,
       guardianName: 'Responsável Exemplo',
       guardianPhone: '5511988887777',
       age: 22,
@@ -274,13 +289,24 @@ export default function PatientProfile() {
       setSelectedEvalId(evaluations[evaluations.length - 1].id);
       setSelectedDates(evaluations.map(e => e.id));
     }
+
+    setEditForm({
+      phone: phone,
+      city: city,
+      targetTraining: targetTraining,
+      position1: position1,
+      position2: position2,
+      photo: photo
+    });
   }, [id]);
 
   if (!patient) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500">Carregando...</div>;
 
   // Filter evaluations for user (only liberated ones) unless admin
-  const visibleEvaluations = isAdmin ? patient.evaluations : patient.evaluations.filter(e => e.isLiberated);
-  const selectedEval = visibleEvaluations.find(e => e.id === selectedEvalId) || visibleEvaluations[0];
+  const visibleEvaluations = (isAdmin ? patient.evaluations : patient.evaluations.filter(e => e.isLiberated))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const selectedEval = visibleEvaluations.find(e => e.id === selectedEvalId) || visibleEvaluations[visibleEvaluations.length - 1];
 
   const toggleLiberation = (evalId: string) => {
     if (!isAdmin) return;
@@ -303,20 +329,62 @@ export default function PatientProfile() {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  const handleSaveProfile = () => {
+    if (!patient) return;
+    
+    const updatedPatient = {
+      ...patient,
+      phone: editForm.phone,
+      city: editForm.city,
+      targetTraining: editForm.targetTraining,
+      position1: editForm.position1,
+      position2: editForm.position2,
+      photo: editForm.photo
+    };
+    
+    setPatient(updatedPatient);
+    
+    // Persist to localStorage
+    const savedRecords = localStorage.getItem('els_records');
+    if (savedRecords) {
+      const records = JSON.parse(savedRecords);
+      const updatedRecords = records.map((r: any) => 
+        r.id === Number(id) ? { 
+          ...r, 
+          phone: editForm.phone,
+          city: editForm.city,
+          targetTraining: editForm.targetTraining,
+          position1: editForm.position1,
+          position2: editForm.position2,
+          photo: editForm.photo
+        } : r
+      );
+      localStorage.setItem('els_records', JSON.stringify(updatedRecords));
+    }
+    
+    setIsEditingProfile(false);
+  };
+
   // Prepare Chart Data
   let chartData = visibleEvaluations
     .filter(e => selectedDates.includes(e.id))
     .map(e => {
       let value = 0;
-      if (chartMetric === 'weight') value = e.weight;
+      if (chartMetric === 'weight') value = Number(e.weight.toFixed(1));
       else if (chartMetric === 'imc') value = Number(calcIMC(e.weight, e.height));
       else if (chartMetric === 'bf_pollock7') value = Number(calcPollock7(e.skinfolds, patient.age));
       else if (chartMetric === 'urineColor') value = e.urineColor || 0;
       else if (chartMetric === 'painLevel') value = e.painLevel || 0;
-      else value = (e.specificTests as any)[chartMetric] || 0;
+      else {
+        const rawValue = (e.specificTests as any)[chartMetric] || 0;
+        // Round speed tests to 2 decimals, others to 1 or 0
+        value = chartMetric.startsWith('velocidade') || chartMetric === 'arrowhead' || chartMetric === 'sprintBola' 
+          ? Number(Number(rawValue).toFixed(2)) 
+          : Number(Number(rawValue).toFixed(1));
+      }
 
       return {
-        name: new Date(e.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+        name: new Date(e.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
         value: value,
         isGhost: false,
         displayValue: value
@@ -365,37 +433,121 @@ export default function PatientProfile() {
           icon={User} 
           isOpen={openSections.perfil} 
           onToggle={() => toggleSection('perfil')}
+          rightAction={
+            (isUser || isAdmin) && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isEditingProfile) handleSaveProfile();
+                  else setIsEditingProfile(true);
+                }}
+                className="flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              >
+                {isEditingProfile ? <Save size={12} /> : <Edit2 size={12} />}
+                {isEditingProfile ? 'Salvar' : 'Editar'}
+              </button>
+            )
+          }
         >
-            <div className="flex items-center gap-3 mb-4 mt-2">
-              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center">
-                <User size={24} />
+            <div className="flex items-center gap-4 mb-6 mt-2">
+              <div className="relative group">
+                <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center overflow-hidden border-2 border-white dark:border-slate-800 shadow-md">
+                  {patient.photo ? (
+                    <img src={patient.photo} alt={patient.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={40} />
+                  )}
+                </div>
+                {isEditingProfile && (
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera size={20} />
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setEditForm(prev => ({ ...prev, photo: reader.result as string }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                )}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-800 dark:text-white">{patient.name}</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-xs">ID: #{patient.id} • Idade: {patient.age} anos</p>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{patient.name}</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">ID: #{patient.id} • {patient.age} anos</p>
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-x-8 gap-y-4 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Contato</p>
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{patient.phone}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Contato</p>
+                {isEditingProfile ? (
+                  <input 
+                    type="text" 
+                    value={editForm.phone} 
+                    onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                ) : (
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{patient.phone}</p>
+                )}
                 {patient.email && <p className="text-xs text-slate-500 dark:text-slate-400">{patient.email}</p>}
               </div>
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Responsável</p>
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{patient.guardianName}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{patient.guardianPhone}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Localização</p>
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{patient.city || 'Não informada'}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Localização</p>
+                {isEditingProfile ? (
+                  <input 
+                    type="text" 
+                    value={editForm.city} 
+                    onChange={e => setEditForm(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                ) : (
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{patient.city || 'Não informada'}</p>
+                )}
                 <p className="text-xs text-slate-500 dark:text-slate-400">Desde {patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString('pt-BR') : '-'}</p>
               </div>
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Esportivo</p>
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{patient.targetTraining || 'Não informado'}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{patient.position1 || '-'} {patient.position2 ? `/ ${patient.position2}` : ''}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Esportivo (Objetivo)</p>
+                {isEditingProfile ? (
+                  <input 
+                    type="text" 
+                    value={editForm.targetTraining} 
+                    onChange={e => setEditForm(prev => ({ ...prev, targetTraining: e.target.value }))}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                ) : (
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{patient.targetTraining || 'Não informado'}</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Posições</p>
+                {isEditingProfile ? (
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Pos 1"
+                      value={editForm.position1} 
+                      onChange={e => setEditForm(prev => ({ ...prev, position1: e.target.value }))}
+                      className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Pos 2"
+                      value={editForm.position2} 
+                      onChange={e => setEditForm(prev => ({ ...prev, position2: e.target.value }))}
+                      className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{patient.position1 || '-'} {patient.position2 ? `/ ${patient.position2}` : ''}</p>
+                )}
               </div>
             </div>
         </AccordionSection>
@@ -443,7 +595,7 @@ export default function PatientProfile() {
 
         {/* 2. EVOLUÇÃO */}
         <AccordionSection 
-          title="2. Acompanhamento" 
+          title="2. Acompanhamento Gráfico" 
           icon={BarChart2} 
           isOpen={openSections.acompanhamento} 
           onToggle={() => toggleSection('acompanhamento')}
@@ -491,30 +643,89 @@ export default function PatientProfile() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} 
+                    dy={10}
+                  />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: '#64748b', fontSize: 12 }} 
-                    label={{ value: METRIC_OPTIONS.find(m => m.value === chartMetric)?.label, angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 12, offset: -10 }}
+                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
+                    width={30}
                   />
                   <RechartsTooltip 
-                    cursor={{ fill: 'rgba(249, 115, 22, 0.1)' }}
-                    contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#1e293b', color: '#fff' }}
-                    formatter={(value: any, name: any, props: any) => {
-                      if (props?.payload?.isGhost) return ['Sem dados', ''];
-                      return [value, METRIC_OPTIONS.find(m => m.value === chartMetric)?.label];
-                    }}
+                    cursor={{ fill: 'rgba(249, 115, 22, 0.05)' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontSize: '12px' }}
+                    itemStyle={{ color: '#f97316', fontWeight: 'bold' }}
                   />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
-                    <LabelList dataKey="displayValue" position="insideBottom" fill="#fff" fontSize={12} fontWeight="bold" />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                    <LabelList 
+                      dataKey="displayValue" 
+                      position="top" 
+                      fill="#64748b" 
+                      fontSize={10}
+                      fontWeight="bold"
+                      offset={8}
+                    />
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.isGhost ? 'rgba(148, 163, 184, 0.2)' : (index === chartData.filter(d=>!d.isGhost).length - 1 ? '#f97316' : '#94a3b8')} />
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.isGhost ? '#e2e8f0' : '#f97316'} 
+                        fillOpacity={entry.isGhost ? 0.3 : (index === chartData.filter(d=>!d.isGhost).length - 1 ? 1 : 0.5)}
+                      />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
+        </AccordionSection>
+
+        {/* TABELA DE HISTÓRICO COMPLETA */}
+        <AccordionSection 
+          title="Tabela de Histórico Completa" 
+          icon={FileText} 
+          isOpen={openSections.tabela} 
+          onToggle={() => toggleSection('tabela')}
+        >
+          <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/50">
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10">Data</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Peso</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">% BF</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Vel. 10m</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Vel. 20m</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Yo-Yo</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">RAST</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">CMJ</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">LSPT</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">SSG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleEvaluations.map((e, idx) => (
+                  <tr key={e.id} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/50 dark:bg-slate-800/20'} hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors`}>
+                    <td className="p-3 text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800 sticky left-0 bg-inherit z-10">
+                      {new Date(e.date).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.weight.toFixed(1)}kg</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{calcPollock7(e.skinfolds, patient.age)}%</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.velocidade10m?.toFixed(2)}s</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.velocidade20m?.toFixed(2)}s</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.yoyo}m</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.rast?.toFixed(1)}</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.cmj}cm</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.lspt}</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.ssg}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </AccordionSection>
 
         {/* 3. BOX DE DATAS (HISTÓRICO) */}
@@ -524,21 +735,25 @@ export default function PatientProfile() {
           isOpen={openSections.historico} 
           onToggle={() => toggleSection('historico')}
         >
-          <div className="flex flex-col md:flex-row justify-between items-center gap-3 mt-2">
-              <div className="flex overflow-x-auto hide-scrollbar gap-2 w-full md:w-auto">
-                {visibleEvaluations.map(e => (
+          <div className="mt-4">
+              <div className="grid grid-cols-4 gap-2">
+                {visibleEvaluations.map((e, idx) => (
                   <button
                     key={e.id}
                     onClick={() => setSelectedEvalId(e.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    className={`px-2 py-3 rounded-xl text-[10px] font-bold transition-all flex flex-col items-center gap-1 ${
                       selectedEvalId === e.id
-                        ? 'bg-slate-800 dark:bg-slate-700 text-white'
+                        ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-lg scale-105'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    {new Date(e.date).toLocaleDateString('pt-BR')}
+                    <span className="opacity-50 text-[8px]">AVAL {idx + 1}</span>
+                    <span>{new Date(e.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
                   </button>
                 ))}
+                <button className="px-2 py-3 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 flex items-center justify-center">
+                  ...
+                </button>
               </div>
 
               {isAdmin && selectedEval && (
@@ -599,11 +814,11 @@ export default function PatientProfile() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 text-center">
                           <p className="text-[10px] text-slate-400 font-bold uppercase">Peso</p>
-                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{selectedEval.weight} <span className="text-[10px] font-normal text-slate-500">kg</span></p>
+                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{selectedEval.weight.toFixed(1)} <span className="text-[10px] font-normal text-slate-500">kg</span></p>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 text-center">
                           <p className="text-[10px] text-slate-400 font-bold uppercase">Altura</p>
-                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{selectedEval.height} <span className="text-[10px] font-normal text-slate-500">cm</span></p>
+                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{Math.round(selectedEval.height)} <span className="text-[10px] font-normal text-slate-500">cm</span></p>
                         </div>
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-100 dark:border-blue-900/50 text-center col-span-2">
                           <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase">IMC</p>
@@ -737,7 +952,7 @@ export default function PatientProfile() {
                       ].map((item, idx) => (
                         <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col justify-center text-center">
                           <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase mb-1">{item.label}</p>
-                          <p className="text-sm font-black text-slate-700 dark:text-slate-200">{item.value}</p>
+                          <p className="text-sm font-black text-slate-700 dark:text-slate-200">{Math.round(item.value)}</p>
                         </div>
                       ))}
                     </div>
@@ -775,7 +990,7 @@ export default function PatientProfile() {
                       ].map((item, idx) => (
                         <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 text-center">
                           <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase mb-1">{item.label}</p>
-                          <p className="text-sm font-black text-slate-700 dark:text-slate-200">{item.value !== undefined ? item.value : '--'}</p>
+                          <p className="text-sm font-black text-slate-700 dark:text-slate-200">{item.value !== undefined ? Math.round(item.value) : '--'}</p>
                         </div>
                       ))}
                     </div>
@@ -813,8 +1028,8 @@ export default function PatientProfile() {
                         <span>1. Velocidade e Aceleração</span>
                       </h3>
                       <div className="space-y-2">
-                        <TestRow label="Tiros de 10m (s)" value={selectedEval.specificTests.velocidade10m} info={TEST_INFO.velocidade10m} isAdmin={isAdmin} />
-                        <TestRow label="Tiros de 20m/30m (s)" value={selectedEval.specificTests.velocidade20m} info={TEST_INFO.velocidade20m} isAdmin={isAdmin} />
+                        <TestRow label="Tiros de 10m (s)" value={selectedEval.specificTests.velocidade10m ? Number(selectedEval.specificTests.velocidade10m.toFixed(2)) : undefined} info={TEST_INFO.velocidade10m} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Tiros de 20m/30m (s)" value={selectedEval.specificTests.velocidade20m ? Number(selectedEval.specificTests.velocidade20m.toFixed(2)) : undefined} info={TEST_INFO.velocidade20m} isLiberated={selectedEval.isLiberated} />
                       </div>
                     </section>
 
@@ -824,8 +1039,8 @@ export default function PatientProfile() {
                         <span>2. Resistência e Potência</span>
                       </h3>
                       <div className="space-y-2">
-                        <TestRow label="Yo-Yo Test (m)" value={selectedEval.specificTests.yoyo} info={TEST_INFO.yoyo} isAdmin={isAdmin} />
-                        <TestRow label="RAST Test (W/kg)" value={selectedEval.specificTests.rast} info={TEST_INFO.rast} isAdmin={isAdmin} />
+                        <TestRow label="Yo-Yo Test (m)" value={selectedEval.specificTests.yoyo} info={TEST_INFO.yoyo} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="RAST Test (W/kg)" value={selectedEval.specificTests.rast ? Math.round(selectedEval.specificTests.rast) : undefined} info={TEST_INFO.rast} isLiberated={selectedEval.isLiberated} />
                       </div>
                     </section>
 
@@ -835,8 +1050,8 @@ export default function PatientProfile() {
                         <span>3. Agilidade (COD)</span>
                       </h3>
                       <div className="space-y-2">
-                        <TestRow label="Teste de Illinois (s)" value={selectedEval.specificTests.illinois} info={TEST_INFO.illinois} isAdmin={isAdmin} />
-                        <TestRow label="Arrowhead Test (s)" value={selectedEval.specificTests.arrowhead} info={TEST_INFO.arrowhead} isAdmin={isAdmin} />
+                        <TestRow label="Teste de Illinois (s)" value={selectedEval.specificTests.illinois} info={TEST_INFO.illinois} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Arrowhead Test (s)" value={selectedEval.specificTests.arrowhead ? Number(selectedEval.specificTests.arrowhead.toFixed(2)) : undefined} info={TEST_INFO.arrowhead} isLiberated={selectedEval.isLiberated} />
                       </div>
                     </section>
 
@@ -846,8 +1061,8 @@ export default function PatientProfile() {
                         <span>4. Força Explosiva</span>
                       </h3>
                       <div className="space-y-2">
-                        <TestRow label="Salto CMJ/SJ (cm)" value={selectedEval.specificTests.cmj} info={TEST_INFO.cmj} isAdmin={isAdmin} />
-                        <TestRow label="Dinamometria (%)" value={selectedEval.specificTests.dinamometria} info={TEST_INFO.dinamometria} isAdmin={isAdmin} />
+                        <TestRow label="Salto CMJ/SJ (cm)" value={selectedEval.specificTests.cmj} info={TEST_INFO.cmj} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Dinamometria (%)" value={selectedEval.specificTests.dinamometria} info={TEST_INFO.dinamometria} isLiberated={selectedEval.isLiberated} />
                       </div>
                     </section>
 
@@ -857,12 +1072,12 @@ export default function PatientProfile() {
                         <span>Avaliações Técnico-Físicas (Com Bola)</span>
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
-                        <TestRow label="Sprint com Bola (s)" value={selectedEval.specificTests.sprintBola} info={TEST_INFO.sprintBola} isAdmin={isAdmin} />
-                        <TestRow label="Slalom com Bola (s)" value={selectedEval.specificTests.slalom} info={TEST_INFO.slalom} isAdmin={isAdmin} />
-                        <TestRow label="LSPT (Pts)" value={selectedEval.specificTests.lspt} info={TEST_INFO.lspt} isAdmin={isAdmin} />
-                        <TestRow label="Wall Pass Test (Reps)" value={selectedEval.specificTests.wallPass} info={TEST_INFO.wallPass} isAdmin={isAdmin} />
-                        <TestRow label="Finalização sob Fadiga" value={selectedEval.specificTests.finalizacao} info={TEST_INFO.finalizacao} isAdmin={isAdmin} />
-                        <TestRow label="Jogos Reduzidos SSG" value={selectedEval.specificTests.ssg} info={TEST_INFO.ssg} isAdmin={isAdmin} />
+                        <TestRow label="Sprint com Bola (s)" value={selectedEval.specificTests.sprintBola ? Number(selectedEval.specificTests.sprintBola.toFixed(2)) : undefined} info={TEST_INFO.sprintBola} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Slalom com Bola (s)" value={selectedEval.specificTests.slalom ? Number(selectedEval.specificTests.slalom.toFixed(2)) : undefined} info={TEST_INFO.slalom} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="LSPT (Pts)" value={selectedEval.specificTests.lspt} info={TEST_INFO.lspt} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Wall Pass Test (Reps)" value={selectedEval.specificTests.wallPass} info={TEST_INFO.wallPass} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Finalização sob Fadiga" value={selectedEval.specificTests.finalizacao} info={TEST_INFO.finalizacao} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Jogos Reduzidos SSG" value={selectedEval.specificTests.ssg} info={TEST_INFO.ssg} isLiberated={selectedEval.isLiberated} />
                       </div>
                     </section>
 
@@ -877,14 +1092,14 @@ export default function PatientProfile() {
 }
 
 // Helper component for specific test rows
-function TestRow({ label, value, info, isAdmin }: { label: string, value?: number, info: string, isAdmin: boolean }) {
+function TestRow({ label, value, info, isLiberated }: { label: string, value?: number, info: string, isLiberated: boolean }) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
     <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
       <div className="flex items-center gap-2">
         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</span>
-        {isAdmin && (
+        {isLiberated && (
           <div 
             className="relative flex items-center justify-center"
             onMouseEnter={() => setShowTooltip(true)}

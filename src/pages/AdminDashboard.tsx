@@ -51,11 +51,12 @@ export default function AdminDashboard() {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [newAppointment, setNewAppointment] = useState({ 
     athleteId: 0, 
-    date: '', 
+    date: new Date().toLocaleDateString('sv-SE'), 
     time: '', 
     type: 'Avaliação Física',
     isWeekly: false,
-    weeksCount: 4
+    weeksCount: 4,
+    selectedDays: [new Date().getDay().toString()]
   });
   const [newAthlete, setNewAthlete] = useState({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
 
@@ -67,10 +68,45 @@ export default function AdminDashboard() {
 
     // Load mock data
     const saved = localStorage.getItem('els_records');
-    if (saved && JSON.parse(saved).length >= 20) {
+    if (saved && JSON.parse(saved).length >= 10) {
       setRecords(JSON.parse(saved));
     } else {
-      // ... (rest of mock data generation)
+      const mockRecords: Record[] = [
+        {
+          id: 1,
+          date: new Date().toISOString(),
+          user: 'João Atleta',
+          phone: '5511999999999',
+          email: 'joao.atleta@email.com',
+          dob: '2002-05-15',
+          city: 'São Paulo',
+          registrationDate: '2023-01-10T10:00:00Z',
+          targetTraining: 'Futebol Profissional',
+          position1: 'Atacante',
+          position2: 'Ponta Direita',
+          pain: 2,
+          fatigue: 3,
+          hydration: "2",
+          status: "Bom"
+        },
+        // Historical records for João to simulate long-term tracking
+        ...Array.from({ length: 15 }).map((_, i) => ({
+          id: 1, // Same ID to simulate history in PatientProfile
+          date: new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
+          user: 'João Atleta',
+          phone: '5511999999999',
+          pain: Math.floor(Math.random() * 4),
+          fatigue: Math.floor(Math.random() * 5),
+          hydration: (Math.floor(Math.random() * 3) + 1).toString(),
+          status: i % 5 === 0 ? "Médio" : "Bom"
+        })),
+        { id: 2, date: new Date().toISOString(), user: 'Lucas Silva', phone: '5511988888888', pain: 8, fatigue: 7, hydration: "6", status: "Precisamos conversar" },
+        { id: 3, date: new Date().toISOString(), user: 'Mateus Santos', phone: '5511977777777', pain: 1, fatigue: 2, hydration: "1", status: "Bom" },
+        { id: 4, date: new Date().toISOString(), user: 'Ricardo Oliveira', phone: '5511966666666', pain: 4, fatigue: 5, hydration: "3", status: "Médio" },
+        { id: 5, date: new Date().toISOString(), user: 'Felipe Costa', phone: '5511955555555', pain: 0, fatigue: 1, hydration: "2", status: "Continue assim" },
+      ];
+      setRecords(mockRecords);
+      localStorage.setItem('els_records', JSON.stringify(mockRecords));
     }
 
     // Load appointments
@@ -86,25 +122,38 @@ export default function AdminDashboard() {
     if (!athlete) return;
 
     const newAppointments: Appointment[] = [];
-    const baseDate = new Date(newAppointment.date + 'T00:00:00');
     const iterations = newAppointment.isWeekly ? newAppointment.weeksCount : 1;
+    const daysToSchedule = newAppointment.isWeekly ? newAppointment.selectedDays : [new Date(newAppointment.date + 'T12:00:00').getDay().toString()];
 
-    for (let i = 0; i < iterations; i++) {
-      const currentDate = new Date(baseDate);
-      currentDate.setDate(baseDate.getDate() + (i * 7));
+    daysToSchedule.forEach(dayStr => {
+      const day = parseInt(dayStr);
+      const baseDate = new Date(newAppointment.date + 'T00:00:00');
       
-      const appointment: Appointment = {
-        id: Math.random().toString(36).substr(2, 9),
-        athleteId: athlete.id,
-        athleteName: athlete.user,
-        date: currentDate.toISOString().split('T')[0],
-        time: newAppointment.time,
-        type: newAppointment.type,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
-      newAppointments.push(appointment);
-    }
+      // Adjust baseDate to the first occurrence of the selected day
+      if (newAppointment.isWeekly) {
+        const currentDay = baseDate.getDay();
+        let diff = day - currentDay;
+        if (diff < 0) diff += 7;
+        baseDate.setDate(baseDate.getDate() + diff);
+      }
+
+      for (let i = 0; i < iterations; i++) {
+        const currentDate = new Date(baseDate);
+        currentDate.setDate(baseDate.getDate() + (i * 7));
+        
+        const appointment: Appointment = {
+          id: Math.random().toString(36).substr(2, 9),
+          athleteId: athlete.id,
+          athleteName: athlete.user,
+          date: currentDate.toISOString().split('T')[0],
+          time: newAppointment.time,
+          type: newAppointment.type,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        };
+        newAppointments.push(appointment);
+      }
+    });
 
     const updated = [...newAppointments, ...appointments];
     setAppointments(updated);
@@ -112,11 +161,12 @@ export default function AdminDashboard() {
     setIsAppointmentModalOpen(false);
     setNewAppointment({ 
       athleteId: 0, 
-      date: '', 
+      date: new Date().toLocaleDateString('sv-SE'), 
       time: '', 
       type: 'Avaliação Física',
       isWeekly: false,
-      weeksCount: 4
+      weeksCount: 4,
+      selectedDays: [new Date().getDay().toString()]
     });
   };
 
@@ -124,6 +174,20 @@ export default function AdminDashboard() {
     const updated = appointments.filter(a => a.id !== id);
     setAppointments(updated);
     localStorage.setItem('els_appointments', JSON.stringify(updated));
+  };
+
+  const confirmAppointment = (id: string) => {
+    const updated = appointments.map(a => a.id === id ? { ...a, status: 'confirmed' as const } : a);
+    setAppointments(updated);
+    localStorage.setItem('els_appointments', JSON.stringify(updated));
+  };
+
+  const sendAppointmentWhatsApp = (app: Appointment) => {
+    const athlete = records.find(r => r.id === app.athleteId);
+    if (!athlete) return;
+    const dateStr = new Date(app.date).toLocaleDateString('pt-BR');
+    const text = encodeURIComponent(`Olá, ${app.athleteName}, o seu agendamento está marcado para ${dateStr} às ${app.time}, favor confirmar, até mais! abraços ELS POWER`);
+    window.open(`https://wa.me/${athlete.phone}?text=${text}`, '_blank');
   };
 
   const handleLogout = () => {
@@ -250,8 +314,8 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3 mb-6">
-              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 min-w-[120px]">
+            <div className="flex flex-row flex-wrap gap-3 mb-6">
+              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 flex-1 min-w-[100px]">
                 <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center shrink-0">
                   <Activity size={12} />
                 </div>
@@ -260,7 +324,7 @@ export default function AdminDashboard() {
                   <p className="text-base font-bold text-slate-800 dark:text-white leading-none">{records.length}</p>
                 </div>
               </div>
-              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 min-w-[120px]">
+              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 flex-1 min-w-[100px]">
                 <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center shrink-0">
                   <AlertTriangle size={12} />
                 </div>
@@ -271,7 +335,7 @@ export default function AdminDashboard() {
                   </p>
                 </div>
               </div>
-              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 min-w-[120px]">
+              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 flex-1 min-w-[100px]">
                 <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center shrink-0">
                   <CheckCircle size={12} />
                 </div>
@@ -295,7 +359,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex gap-1.5">
                       <Link 
-                        to={`/admin/patient/${record.id}`}
+                        to={`/patient/${record.id}`}
                         className="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center"
                         title="Perfil do Atleta"
                       >
@@ -410,7 +474,7 @@ export default function AdminDashboard() {
                         <td className="px-3 py-2 text-right">
                           <div className="flex justify-end gap-1">
                             <Link 
-                              to={`/admin/patient/${record.id}`}
+                              to={`/patient/${record.id}`}
                               className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                               title="Perfil do Atleta"
                             >
@@ -461,9 +525,15 @@ export default function AdminDashboard() {
                         <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl flex items-center justify-center font-bold">
                           {app.athleteName.charAt(0)}
                         </div>
-                        <div>
+                        <div className="flex items-center gap-2">
                           <p className="font-bold text-slate-800 dark:text-white">{app.athleteName}</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">{app.type}</p>
+                          <button 
+                            onClick={() => sendAppointmentWhatsApp(app)}
+                            className="text-green-500 hover:text-green-600 transition-colors"
+                            title="Enviar WhatsApp"
+                          >
+                            <MessageCircle size={14} />
+                          </button>
                         </div>
                       </div>
                       <button 
@@ -486,13 +556,24 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        app.status === 'confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        app.status === 'canceled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                      }`}>
-                        {app.status === 'confirmed' ? <Check size={10} /> : app.status === 'canceled' ? <X size={10} /> : <Clock size={10} />}
-                        {app.status === 'confirmed' ? 'Confirmado' : app.status === 'canceled' ? 'Cancelado' : 'Pendente'}
+                      <div className="flex items-center gap-2">
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          app.status === 'confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          app.status === 'canceled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                          'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        }`}>
+                          {app.status === 'confirmed' ? <Check size={10} /> : app.status === 'canceled' ? <X size={10} /> : <Clock size={10} />}
+                          {app.status === 'confirmed' ? 'Confirmado' : app.status === 'canceled' ? 'Cancelado' : 'Pendente'}
+                        </div>
+                        {app.status === 'pending' && (
+                          <button 
+                            onClick={() => confirmAppointment(app.id)}
+                            className="bg-green-500 text-white p-1 rounded-md hover:bg-green-600 transition"
+                            title="Confirmar Agendamento"
+                          >
+                            <Check size={12} />
+                          </button>
+                        )}
                       </div>
                       <span className="text-[10px] text-slate-400">Criado em {new Date(app.createdAt).toLocaleDateString('pt-BR')}</span>
                     </div>
@@ -518,6 +599,23 @@ export default function AdminDashboard() {
               <CalendarIcon className="text-orange-500" size={24} />
               Novo Agendamento
             </h3>
+            <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              <button 
+                type="button"
+                onClick={() => setNewAppointment({...newAppointment, isWeekly: false})}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${!newAppointment.isWeekly ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500'}`}
+              >
+                Por Data
+              </button>
+              <button 
+                type="button"
+                onClick={() => setNewAppointment({...newAppointment, isWeekly: true})}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${newAppointment.isWeekly ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500'}`}
+              >
+                Dias da Semana
+              </button>
+            </div>
+
             <form onSubmit={handleCreateAppointment} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Atleta</label>
@@ -533,70 +631,98 @@ export default function AdminDashboard() {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data</label>
-                  <input 
-                    required 
-                    type="date" 
-                    value={newAppointment.date}
-                    onChange={e => setNewAppointment({...newAppointment, date: e.target.value})}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Horário</label>
-                  <input 
-                    required 
-                    type="time" 
-                    value={newAppointment.time}
-                    onChange={e => setNewAppointment({...newAppointment, time: e.target.value})}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo</label>
-                <select 
-                  required
-                  value={newAppointment.type}
-                  onChange={e => setNewAppointment({...newAppointment, type: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                >
-                  <option value="Avaliação Física">Avaliação Física</option>
-                  <option value="Treino Técnico">Treino Técnico</option>
-                  <option value="Conversa Individual">Conversa Individual</option>
-                  <option value="Reabilitação">Reabilitação</option>
-                </select>
-              </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={newAppointment.isWeekly}
-                    onChange={e => setNewAppointment({...newAppointment, isWeekly: e.target.checked})}
-                    className="w-4 h-4 accent-orange-500"
-                  />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Repetir semanalmente</span>
-                </label>
-                
-                {newAppointment.isWeekly && (
-                  <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Número de semanas</label>
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="range" 
-                        min="2" max="12" 
-                        value={newAppointment.weeksCount}
-                        onChange={e => setNewAppointment({...newAppointment, weeksCount: Number(e.target.value)})}
-                        className="flex-1 accent-orange-500"
-                      />
-                      <span className="text-sm font-bold text-orange-500 w-6 text-center">{newAppointment.weeksCount}</span>
+              {!newAppointment.isWeekly ? (
+                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data de Início</label>
+                    <input 
+                      required 
+                      type="date" 
+                      value={newAppointment.date}
+                      onChange={e => {
+                        const d = new Date(e.target.value + 'T12:00:00');
+                        setNewAppointment({
+                          ...newAppointment, 
+                          date: e.target.value,
+                          selectedDays: [d.getDay().toString()]
+                        });
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Horário</label>
+                    <input 
+                      required 
+                      type="time" 
+                      value={newAppointment.time}
+                      onChange={e => setNewAppointment({...newAppointment, time: e.target.value})}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Dias da Semana</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { id: '1', label: 'Seg' },
+                        { id: '2', label: 'Ter' },
+                        { id: '3', label: 'Qua' },
+                        { id: '4', label: 'Qui' },
+                        { id: '5', label: 'Sex' },
+                        { id: '6', label: 'Sáb' },
+                        { id: '0', label: 'Dom' },
+                      ].map(day => (
+                        <button
+                          key={day.id}
+                          type="button"
+                          onClick={() => {
+                            const selected = newAppointment.selectedDays.includes(day.id)
+                              ? newAppointment.selectedDays.filter(d => d !== day.id)
+                              : [...newAppointment.selectedDays, day.id];
+                            setNewAppointment({ ...newAppointment, selectedDays: selected });
+                          }}
+                          className={`py-2 rounded-lg text-[10px] font-bold transition-all border ${
+                            newAppointment.selectedDays.includes(day.id)
+                              ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/20'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                )}
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Horário</label>
+                      <input 
+                        required
+                        type="time" 
+                        value={newAppointment.time}
+                        onChange={e => setNewAppointment({...newAppointment, time: e.target.value})}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Número de semanas</label>
+                      <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <input 
+                          type="range" 
+                          min="2" max="12" 
+                          value={newAppointment.weeksCount}
+                          onChange={e => setNewAppointment({...newAppointment, weeksCount: Number(e.target.value)})}
+                          className="flex-1 accent-orange-500"
+                        />
+                        <span className="text-xs font-bold text-orange-500 w-4 text-center">{newAppointment.weeksCount}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <button 
                 type="submit" 
                 className="w-full bg-orange-500 text-white font-bold py-2.5 text-sm rounded-xl hover:bg-orange-600 active:scale-[0.98] transition-all mt-6 shadow-lg shadow-orange-500/20"

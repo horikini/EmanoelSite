@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X } from 'lucide-react';
+import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 const URINE_COLORS = [
@@ -33,6 +33,7 @@ export default function UserDashboard() {
   const [hydration, setHydration] = useState<string>('');
   const [submitted, setSubmitted] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -40,13 +41,28 @@ export default function UserDashboard() {
       navigate('/login');
     }
 
+    // Check if already submitted today
+    const today = new Date().toISOString().split('T')[0];
+    const hasSubmittedToday = localStorage.getItem(`els_submitted_${today}`);
+    if (hasSubmittedToday) {
+      setSubmitted(true);
+    }
+
     // Load appointments (mocking current athlete ID as 1 for now)
     const savedApps = localStorage.getItem('els_appointments');
     if (savedApps) {
       const allApps: Appointment[] = JSON.parse(savedApps);
-      // In a real app, we'd filter by the logged-in user's ID
-      // For this demo, we'll show all pending appointments for "João Atleta" (ID 1)
       setAppointments(allApps.filter(a => a.athleteId === 1 || a.athleteName === 'João Atleta'));
+    }
+
+    // Load user photo
+    const savedRecords = localStorage.getItem('els_records');
+    if (savedRecords) {
+      const records = JSON.parse(savedRecords);
+      const userRecord = records.find((r: any) => r.id === 1 || r.user === 'João Atleta');
+      if (userRecord && userRecord.photo) {
+        setUserPhoto(userRecord.photo);
+      }
     }
   }, [navigate]);
 
@@ -84,6 +100,10 @@ export default function UserDashboard() {
     const existing = JSON.parse(localStorage.getItem('els_records') || '[]');
     localStorage.setItem('els_records', JSON.stringify([record, ...existing]));
     
+    // Persist submission for today
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem(`els_submitted_${today}`, 'true');
+    
     setSubmitted(true);
   };
 
@@ -93,16 +113,19 @@ export default function UserDashboard() {
         <motion.div 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-lg text-center max-w-sm w-full border border-slate-200 dark:border-slate-800"
+          className="bg-white dark:bg-slate-900 p-10 rounded-3xl shadow-lg text-center max-w-sm w-full border border-slate-200 dark:border-slate-800"
         >
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Relatório Enviado!</h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">Seus dados foram registrados com sucesso. A comissão técnica avaliará em breve.</p>
+          <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Avaliação concluída</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Seu feedback diário foi registrado com sucesso.</p>
+          
           <button 
-            onClick={() => setSubmitted(false)}
-            className="w-full bg-slate-900 dark:bg-orange-500 text-white py-3 rounded-xl font-medium hover:bg-slate-800 dark:hover:bg-orange-600 transition"
+            onClick={() => navigate('/patient/1')}
+            className="mt-8 w-full bg-slate-900 dark:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition"
           >
-            Novo Registro
+            VER MEU PERFIL
           </button>
         </motion.div>
       </div>
@@ -137,6 +160,15 @@ export default function UserDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
+          {userPhoto ? (
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-700">
+              <img src={userPhoto} alt="User" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+              <User size={16} />
+            </div>
+          )}
           <button onClick={handleLogout} className="p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white transition">
             <LogOut size={20} />
           </button>
@@ -197,120 +229,152 @@ export default function UserDashboard() {
           </div>
         )}
 
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Como você está hoje?</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Preencha com sinceridade para ajustarmos seu treino.</p>
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
+            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Peso Atual</p>
+            <p className="text-lg font-black text-slate-800 dark:text-white">74.2 <span className="text-[10px] font-normal">kg</span></p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
+            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Gordura</p>
+            <p className="text-lg font-black text-orange-500">11.4 <span className="text-[10px] font-normal">%</span></p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
+            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Yo-Yo Test</p>
+            <p className="text-lg font-black text-blue-500">2040 <span className="text-[10px] font-normal">m</span></p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* 1. Pain Scale */}
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2 mb-4">
-              <Flame className="text-orange-500" />
-              <h3 className="font-bold text-slate-800 dark:text-white">1. Escala de Dor (EVN)</h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Classifique sua dor atual de 0 a 10:</p>
-            
-            <input 
-              type="range" 
-              min="0" max="10" 
-              value={pain} 
-              onChange={(e) => setPain(Number(e.target.value))}
-              className="w-full accent-orange-500 mb-2"
-            />
-            <div className="flex justify-between text-xs font-bold text-slate-400 dark:text-slate-500 mb-4">
-              <span>0</span>
-              <span className="text-orange-500 text-lg">{pain}</span>
-              <span>10</span>
-            </div>
-            
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg text-xs text-slate-600 dark:text-slate-400 space-y-1">
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">0:</span> Nenhuma dor</p>
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">1-3:</span> Dor leve (não interfere)</p>
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">4-6:</span> Dor moderada (interfere)</p>
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">7-9:</span> Dor intensa (incapacitante)</p>
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">10:</span> A pior dor imaginável</p>
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-black p-5 rounded-3xl shadow-lg mb-8 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Activity size={80} />
+          </div>
+          <div className="relative z-10">
+            <p className="text-orange-400 text-[10px] font-bold uppercase tracking-widest mb-1">Última Avaliação</p>
+            <h3 className="text-xl font-bold mb-4">Seu desempenho evoluiu!</h3>
+            <div className="flex items-center gap-4 text-sm text-slate-300">
+              <div className="flex items-center gap-1">
+                <CalendarIcon size={14} />
+                <span>12/04/2026</span>
+              </div>
+              <div className="flex items-center gap-1 text-green-400 font-bold">
+                <CheckCircle2 size={14} />
+                <span>Resultados Liberados</span>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* 2. Fatigue Scale */}
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2 mb-4">
-              <Activity className="text-blue-500" />
-              <h3 className="font-bold text-slate-800 dark:text-white">2. Cansaço / Fadiga</h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Avalie seu nível de cansaço físico e mental:</p>
-            
-            <input 
-              type="range" 
-              min="0" max="10" 
-              value={fatigue} 
-              onChange={(e) => setFatigue(Number(e.target.value))}
-              className="w-full accent-blue-500 mb-2"
-            />
-            <div className="flex justify-between text-xs font-bold text-slate-400 dark:text-slate-500 mb-4">
-              <span>0</span>
-              <span className="text-blue-500 text-lg">{fatigue}</span>
-              <span>10</span>
-            </div>
-            
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg text-xs text-slate-600 dark:text-slate-400 space-y-1">
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">0:</span> Nenhum cansaço (energizado)</p>
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">1-3:</span> Cansaço leve</p>
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">4-6:</span> Cansaço moderado</p>
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">7-9:</span> Cansaço intenso / Exaustão</p>
-              <p><span className="font-bold text-slate-700 dark:text-slate-300">10:</span> Exaustão extrema</p>
-            </div>
+        <div className="mb-6 flex justify-between items-end">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Olá, João!</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Acompanhe sua evolução e envie seu feedback.</p>
           </div>
-
-          {/* 3. Hydration */}
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2 mb-4">
-              <Droplets className="text-cyan-500" />
-              <h3 className="font-bold text-slate-800 dark:text-white">3. Nível de Hidratação</h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Selecione a cor que mais se aproxima da sua urina hoje:</p>
-            
-            <div className="space-y-2">
-              {URINE_COLORS.map((item) => (
-                <label 
-                  key={item.id} 
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${hydration === item.id ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
-                >
-                  <input 
-                    type="radio" 
-                    name="hydration" 
-                    value={item.id}
-                    checked={hydration === item.id}
-                    onChange={(e) => setHydration(e.target.value)}
-                    className="hidden"
-                  />
-                  <div 
-                    className="w-6 h-6 rounded-full border border-slate-300 dark:border-slate-600 shadow-inner shrink-0" 
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <div className="flex-1">
-                    <p className={`text-sm font-medium ${hydration === item.id ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-800 dark:text-slate-200'}`}>{item.label}</p>
-                  </div>
-                  {hydration === item.id && <CheckCircle2 className="text-cyan-500 shrink-0" size={20} />}
-                </label>
-              ))}
-            </div>
-
-            <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/50 rounded-xl">
-              <p className="text-xs text-orange-800 dark:text-orange-300">
-                <span className="font-bold">Atenção:</span> Urinas a partir do "Amarelo escuro" indicam desidratação e exigem ingestão imediata de água. Cores como marrom ou vermelho exigem atenção médica.
-              </p>
-            </div>
-          </div>
-
           <button 
-            type="submit"
-            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-lg py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+            onClick={() => navigate('/patient/1')}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-bold hover:bg-orange-200 transition"
           >
-            ENVIAR RELATÓRIO
+            <Activity size={14} />
+            Ver Perfil Completo
           </button>
-        </form>
+        </div>
+
+        {submitted ? (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 text-center animate-in fade-in zoom-in duration-500">
+            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+            <h3 className="text-xl font-bold text-emerald-800 dark:text-emerald-400">Avaliação concluída</h3>
+            <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-1">Obrigado pelo seu feedback diário!</p>
+            <button 
+              onClick={() => setSubmitted(false)}
+              className="mt-4 text-xs font-bold text-emerald-700 dark:text-emerald-400 underline"
+            >
+              Editar resposta
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Hydration */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-4">
+                <Droplets className="text-cyan-500" />
+                <h3 className="font-bold text-slate-800 dark:text-white">Nível de Hidratação</h3>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Selecione a cor da sua urina hoje:</p>
+              
+              <div className="grid grid-cols-4 gap-2">
+                {URINE_COLORS.map((item) => (
+                  <button 
+                    key={item.id}
+                    type="button"
+                    onClick={() => setHydration(item.id)}
+                    className={`relative h-12 rounded-xl border-2 transition-all ${hydration === item.id ? 'border-cyan-500 scale-105 shadow-md' : 'border-transparent'}`}
+                    style={{ backgroundColor: item.color }}
+                    title={item.label}
+                  >
+                    {hydration === item.id && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-lg">
+                        <Check size={20} className="text-cyan-600 drop-shadow-md" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pain and Fatigue */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="text-red-500" size={20} />
+                    <h3 className="font-bold text-slate-800 dark:text-white">Nível de Dor</h3>
+                  </div>
+                  <span className="text-lg font-black text-red-500">{pain}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="10" 
+                  value={pain} 
+                  onChange={(e) => setPain(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500"
+                />
+                <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-bold uppercase">
+                  <span>Sem Dor</span>
+                  <span>Dor Extrema</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Flame className="text-orange-500" size={20} />
+                    <h3 className="font-bold text-slate-800 dark:text-white">Nível de Fadiga</h3>
+                  </div>
+                  <span className="text-lg font-black text-orange-500">{fatigue}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="10" 
+                  value={fatigue} 
+                  onChange={(e) => setFatigue(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                />
+                <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-bold uppercase">
+                  <span>Descansado</span>
+                  <span>Exausto</span>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              type="submit"
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-lg py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+            >
+              ENVIAR FEEDBACK
+            </button>
+          </form>
+        )}
       </main>
     </div>
   );

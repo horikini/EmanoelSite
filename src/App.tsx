@@ -19,7 +19,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/patient/:id" element={<PatientProfile />} />
+          <Route path="/patient/:id" element={<PatientProfile />} />
           <Route path="/dashboard" element={<UserDashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

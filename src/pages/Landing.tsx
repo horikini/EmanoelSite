@@ -1,6 +1,35 @@
+import React from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Zap, Trophy, Dumbbell, Target, HeartPulse, LineChart, Utensils, ShieldCheck, Lock, Users } from 'lucide-react';
+
+const NeonButton = ({ children, to, className = "" }: { children: React.ReactNode; to?: string; className?: string }) => {
+  const content = (
+    <>
+      <span className="absolute block neon-btn-span-1" />
+      <span className="absolute block neon-btn-span-2" />
+      <span className="absolute block neon-btn-span-3" />
+      <span className="absolute block neon-btn-span-4" />
+      {children}
+    </>
+  );
+
+  const baseClasses = `relative inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 border border-orange-400/50 text-white font-bold text-base py-3 px-6 rounded-xl overflow-hidden transition-all duration-500 neon-btn-hover ${className}`;
+
+  if (to) {
+    return (
+      <Link to={to} className={baseClasses}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <a href="#treinamentos" className={baseClasses}>
+      {content}
+    </a>
+  );
+};
 
 export default function Landing() {
   return (
@@ -151,21 +180,10 @@ export default function Landing() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-col gap-3 w-full"
           >
-            <motion.a
-              href="#treinamentos"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              animate={{ 
-                boxShadow: ["0px 0px 0px rgba(249,115,22,0)", "0px 0px 20px rgba(249,115,22,0.4)", "0px 0px 0px rgba(249,115,22,0)"]
-              }}
-              transition={{ 
-                boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-              }}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg transition-all"
-            >
+            <NeonButton className="w-full md:w-max">
               INICIAR TREINAMENTO
               <ChevronRight size={20} />
-            </motion.a>
+            </NeonButton>
             <a
               href="#treinamentos"
               className="flex items-center justify-center gap-2 bg-slate-900 border border-slate-800 text-white font-bold text-base py-3 px-6 rounded-xl active:scale-[0.98] transition-all"
@@ -228,22 +246,34 @@ export default function Landing() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mt-12 bg-orange-500/5 border border-orange-500/20 p-6 rounded-3xl text-center relative overflow-hidden group"
+            className="mt-12 p-10 rounded-[3rem] text-center relative overflow-hidden group border border-orange-500/30 bg-slate-900/60 backdrop-blur-xl shadow-[0_0_50px_rgba(249,115,22,0.1)]"
           >
+            {/* Decorative Blurred Elements with Mix Blend Mode */}
+            <div className="absolute -top-10 -left-10 w-48 h-48 bg-orange-600/30 rounded-full filter blur-[60px] mix-blend-overlay animate-pulse" />
+            <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-yellow-500/20 rounded-full filter blur-[80px] mix-blend-screen" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-white/5 filter blur-[100px] mix-blend-soft-light" />
+
+            {/* Shimmer Effect */}
             <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
-              animate={{ x: ['-100%', '100%'] }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"
+              animate={{ x: ['-100%', '200%'] }}
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
-            <motion.div 
-              className="absolute inset-0 shadow-[0_0_30px_rgba(249,115,22,0.2)]"
-              animate={{ opacity: [0.2, 0.5, 0.2] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            <p className="text-orange-400 font-bold flex items-center justify-center gap-3 text-lg relative z-10">
-              <Zap size={32} className="fill-orange-400" />
-              Plataforma exclusiva de acompanhamento integral ao Atleta.
-            </p>
+            
+            <div className="relative z-10 flex flex-col items-center gap-6">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Zap size={48} className="text-yellow-400 fill-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]" />
+              </motion.div>
+              <h3 className="text-2xl md:text-4xl font-black italic uppercase tracking-tighter leading-tight">
+                <span className="text-white">Plataforma Exclusiva de</span> <br />
+                <span className="bg-gradient-to-r from-orange-400 via-yellow-400 to-white bg-clip-text text-transparent">
+                  Acompanhamento ao Atleta
+                </span>
+              </h3>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -284,21 +314,10 @@ export default function Landing() {
                 viewport={{ once: true }}
                 className="pt-4"
               >
-                <motion.a
-                  href="#treinamentos"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  animate={{ 
-                    boxShadow: ["0px 0px 0px rgba(249,115,22,0)", "0px 0px 20px rgba(249,115,22,0.4)", "0px 0px 0px rgba(249,115,22,0)"]
-                  }}
-                  transition={{ 
-                    boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                  }}
-                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg transition-all w-full md:w-max"
-                >
+                <NeonButton className="w-full md:w-max">
                   INICIAR TREINAMENTO
                   <ChevronRight size={20} />
-                </motion.a>
+                </NeonButton>
               </motion.div>
             </motion.div>
             <motion.div 
@@ -353,15 +372,15 @@ export default function Landing() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
                   <ShieldCheck className="text-blue-500" size={32} />
-                  <p className="text-slate-200 font-medium text-sm">Fortalecimento Excêntrico: Usado intensamente para reabilitar estiramentos musculares.</p>
+                  <p className="text-slate-200 font-medium text-sm">Fortalecimento Excêntrico: (estiramentos musculares)</p>
                 </div>
                 <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
                   <ShieldCheck className="text-blue-500" size={32} />
-                  <p className="text-slate-200 font-medium text-sm">Treinamento Proprioceptivo: Exercícios de equilíbrio para aumentar a consciência corporal e prevenir entorses (tornozelo/joelho).</p>
+                  <p className="text-slate-200 font-medium text-sm">Treinamento Proprioceptivo (prevenção entorses, tornozelo/joelho)</p>
                 </div>
                 <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
                   <ShieldCheck className="text-blue-500" size={32} />
-                  <p className="text-slate-200 font-medium text-sm">Core Training: Estabilização do tronco (core) para proteger a coluna e melhorar a transferência de força</p>
+                  <p className="text-slate-200 font-medium text-sm">Core Training: Estabilização do tronco e transferência de força</p>
                 </div>
                 <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
                   <ShieldCheck className="text-blue-500" size={32} />
@@ -579,29 +598,20 @@ export default function Landing() {
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 mix-blend-overlay"></div>
         <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
           <h2 className="text-4xl md:text-6xl font-black italic mb-6 uppercase drop-shadow-lg">
-            Pronto para mudar de patamar?
+            <motion.span
+              animate={{ opacity: [1, 0.8, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              Pronto para mudar de patamar?
+            </motion.span>
           </h2>
           <p className="text-slate-300 text-xl mb-10">
             Junte-se à ELS POWER e tenha acesso ao treinamento, acompanhamento e estrutura que os atletas profissionais utilizam.
           </p>
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            animate={{ 
-              boxShadow: ["0px 0px 0px rgba(249,115,22,0)", "0px 0px 20px rgba(249,115,22,0.4)", "0px 0px 0px rgba(249,115,22,0)"]
-            }}
-            transition={{ 
-              boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-            }}
-          >
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg transition-all"
-            >
-              INICIAR TREINAMENTO
-              <ChevronRight size={20} />
-            </Link>
-          </motion.div>
+          <NeonButton to="/login" className="w-full md:w-max">
+            INICIAR TREINAMENTO
+            <ChevronRight size={20} />
+          </NeonButton>
         </div>
       </section>
       
