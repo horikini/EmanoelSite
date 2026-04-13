@@ -30,32 +30,46 @@ export default function Landing() {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-50 p-4 flex flex-col items-center gap-6 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent pb-12">
         <div className="flex items-center justify-center w-full mt-4">
-          <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 p-5 rounded-[2rem] shadow-[0_0_50px_rgba(249,115,22,0.15)] flex items-center justify-center">
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 p-5 rounded-[2rem] shadow-[0_0_50px_rgba(249,115,22,0.15)] flex items-center justify-center relative overflow-hidden group">
+            <motion.div 
+              className="absolute inset-0 bg-orange-500/10"
+              animate={{ 
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.6, 0.3]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
             <img 
               src="/logo.png" 
               alt="ELS POWER Logo" 
-              className="h-28 md:h-36 w-auto object-contain drop-shadow-2xl"
+              className="h-28 md:h-36 w-auto object-contain drop-shadow-2xl relative z-10"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
             />
           </div>
         </div>
-        <div className="flex gap-3">
-          <Link
-            to="/login"
-            className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/50 text-orange-400 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-orange-500 hover:text-white transition-all"
-          >
-            <Lock size={12} />
-            ATLETA
-          </Link>
-          <Link
-            to="/login"
-            className="flex items-center gap-2 bg-slate-800/50 border border-slate-700 text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-slate-700 transition-all"
-          >
-            <Lock size={12} />
-            EQUIPE
-          </Link>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex gap-3">
+            <Link
+              to="/login"
+              className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/50 text-orange-400 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-orange-500 hover:text-white transition-all"
+            >
+              <Lock size={12} />
+              ATLETA
+            </Link>
+            <Link
+              to="/login"
+              className="flex items-center gap-2 bg-slate-800/50 border border-slate-700 text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-slate-700 transition-all"
+            >
+              <Lock size={12} />
+              EQUIPE
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -104,11 +118,19 @@ export default function Landing() {
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{ 
+              opacity: 1, 
+              y: 0,
+            }}
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl font-black uppercase italic tracking-tighter leading-[1.1] mb-6"
           >
-            Domine o Jogo. <br />
+            <motion.span
+              animate={{ opacity: [1, 0.8, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              Domine o Jogo.
+            </motion.span> <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-orange-500 to-yellow-500">
               Supere seus Limites.
             </span>
@@ -129,13 +151,21 @@ export default function Landing() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-col gap-3 w-full"
           >
-            <a
+            <motion.a
               href="#treinamentos"
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg active:scale-[0.98] transition-all"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              animate={{ 
+                boxShadow: ["0px 0px 0px rgba(249,115,22,0)", "0px 0px 20px rgba(249,115,22,0.4)", "0px 0px 0px rgba(249,115,22,0)"]
+              }}
+              transition={{ 
+                boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+              }}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg transition-all"
             >
               INICIAR TREINAMENTO
               <ChevronRight size={20} />
-            </a>
+            </motion.a>
             <a
               href="#treinamentos"
               className="flex items-center justify-center gap-2 bg-slate-900 border border-slate-800 text-white font-bold text-base py-3 px-6 rounded-xl active:scale-[0.98] transition-all"
@@ -147,9 +177,9 @@ export default function Landing() {
       </section>
 
       {/* Metodologia / Tipos de Treinamento */}
-      <section id="treinamentos" className="py-24 px-4 relative z-10 bg-transparent">
+      <section id="treinamentos" className="py-10 px-4 relative z-10 bg-transparent">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <h2 className="text-3xl md:text-5xl font-black italic mb-4">NOSSOS TREINAMENTOS</h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">Uma abordagem completa para construir atletas mais fortes, rápidos e inteligentes.</p>
           </div>
@@ -193,13 +223,35 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-12 bg-orange-500/5 border border-orange-500/20 p-6 rounded-3xl text-center relative overflow-hidden group"
+          >
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div 
+              className="absolute inset-0 shadow-[0_0_30px_rgba(249,115,22,0.2)]"
+              animate={{ opacity: [0.2, 0.5, 0.2] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            <p className="text-orange-400 font-bold flex items-center justify-center gap-3 text-lg relative z-10">
+              <Zap size={32} className="fill-orange-400" />
+              Plataforma exclusiva de acompanhamento integral ao Atleta.
+            </p>
+          </motion.div>
         </div>
       </section>
 
       {/* Treinamento Funcional e Força */}
-      <section className="py-24 px-4 relative z-10 bg-transparent overflow-hidden">
+      <section className="py-10 px-4 relative z-10 bg-transparent overflow-hidden">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-12">
             <motion.div 
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -216,16 +268,38 @@ export default function Landing() {
               <p className="text-slate-300 text-lg leading-relaxed">
                 Desenvolvemos padrões de movimento específicos do futebol. Nosso funcional não é apenas exercício, é transferência direta para o campo: estabilidade, coordenação e controle motor sob fadiga.
               </p>
-              <div className="flex gap-4">
-                <div className="flex-1 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-                  <p className="text-orange-500 font-bold text-xl">Core</p>
+              <div className="flex flex-col gap-4">
+                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-orange-500 font-bold text-xl uppercase">CORE</p>
                   <p className="text-slate-400 text-sm">Estabilidade central para proteção e potência.</p>
                 </div>
-                <div className="flex-1 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-                  <p className="text-orange-500 font-bold text-xl">SAQ</p>
-                  <p className="text-slate-400 text-sm">Speed, Agility and Quickness (Velocidade e Agilidade).</p>
+                <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-orange-500 font-bold text-xl uppercase">HIFT</p>
+                  <p className="text-slate-400 text-sm">Circuitos focados em queima de gordura, força e resistência.</p>
                 </div>
               </div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="pt-4"
+              >
+                <motion.a
+                  href="#treinamentos"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  animate={{ 
+                    boxShadow: ["0px 0px 0px rgba(249,115,22,0)", "0px 0px 20px rgba(249,115,22,0.4)", "0px 0px 0px rgba(249,115,22,0)"]
+                  }}
+                  transition={{ 
+                    boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                  }}
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg transition-all w-full md:w-max"
+                >
+                  INICIAR TREINAMENTO
+                  <ChevronRight size={20} />
+                </motion.a>
+              </motion.div>
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
@@ -278,12 +352,20 @@ export default function Landing() {
               </p>
               <div className="space-y-4">
                 <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
-                  <ShieldCheck className="text-blue-500" size={24} />
-                  <p className="text-slate-200 font-medium">Protocolos de Retorno ao Jogo (Return to Play)</p>
+                  <ShieldCheck className="text-blue-500" size={32} />
+                  <p className="text-slate-200 font-medium text-sm">Fortalecimento Excêntrico: Usado intensamente para reabilitar estiramentos musculares.</p>
                 </div>
                 <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
-                  <Zap className="text-blue-500" size={24} />
-                  <p className="text-slate-200 font-medium">Treinamento de Força Reativa e Pliometria</p>
+                  <ShieldCheck className="text-blue-500" size={32} />
+                  <p className="text-slate-200 font-medium text-sm">Treinamento Proprioceptivo: Exercícios de equilíbrio para aumentar a consciência corporal e prevenir entorses (tornozelo/joelho).</p>
+                </div>
+                <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
+                  <ShieldCheck className="text-blue-500" size={32} />
+                  <p className="text-slate-200 font-medium text-sm">Core Training: Estabilização do tronco (core) para proteger a coluna e melhorar a transferência de força</p>
+                </div>
+                <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border-l-4 border-blue-500">
+                  <ShieldCheck className="text-blue-500" size={32} />
+                  <p className="text-slate-200 font-medium text-sm">Protocolos de Retorno ao Jogo (Return to Play)</p>
                 </div>
               </div>
             </motion.div>
@@ -292,12 +374,12 @@ export default function Landing() {
       </section>
 
       {/* Planilha e Acompanhamento */}
-      <section className="py-24 px-4 relative z-10 bg-slate-900/40 backdrop-blur-md overflow-hidden">
+      <section className="py-10 px-4 relative z-10 bg-slate-900/40 backdrop-blur-md overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
           <div className="flex-1 space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-sm font-bold border border-blue-500/20">
               <LineChart size={16} />
-              <span>EVOLUÇÃO BASEADA EM DADOS</span>
+              <span>ACOMPANHAMENTO EXCLUSIVO</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-black italic leading-tight">
               Planilha de Acompanhamento <span className="text-blue-500">Exclusiva</span>
@@ -307,9 +389,10 @@ export default function Landing() {
             </p>
             <ul className="space-y-4 mt-6">
               {[
-                "Controle de Carga de Treinamento",
-                "Monitoramento de Fadiga e Dor (Wellness)",
+                "Avaliação Física 360°",
                 "Avaliações Físicas Periódicas",
+                "Controle de Carga de Treinamento",
+                "Monitoramento de Fadiga e Dor",
                 "Ajuste de treinos em tempo real"
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-3 text-slate-300">
@@ -332,9 +415,9 @@ export default function Landing() {
       </section>
 
       {/* Galeria de Treinamento em Ação */}
-      <section className="py-24 px-4 relative z-10 bg-transparent">
+      <section className="py-10 px-4 relative z-10 bg-transparent">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <h2 className="text-3xl md:text-5xl font-black italic mb-4">TREINAMENTO EM AÇÃO</h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">Veja como preparamos nossos atletas para o topo do futebol mundial.</p>
           </div>
@@ -374,7 +457,7 @@ export default function Landing() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
               <div className="absolute bottom-4 left-4">
-                <h4 className="text-lg font-bold">Agilidade e Coordenação</h4>
+                <h4 className="text-2xl font-bold">Agilidade e Coordenação</h4>
               </div>
             </motion.div>
 
@@ -393,7 +476,7 @@ export default function Landing() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
               <div className="absolute bottom-4 left-4">
-                <h4 className="text-lg font-bold">Potência Explosiva</h4>
+                <h4 className="text-2xl font-bold">Potência Explosiva</h4>
               </div>
             </motion.div>
           </div>
@@ -401,9 +484,9 @@ export default function Landing() {
       </section>
 
       {/* Equipe / Time */}
-      <section className="py-24 px-4 relative z-10 bg-transparent">
+      <section className="py-10 px-4 relative z-10 bg-transparent">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-sm font-bold border border-orange-500/20 mb-4">
               <Users size={16} />
               <span>NOSSA EQUIPE</span>
@@ -417,19 +500,19 @@ export default function Landing() {
               {
                 name: "Manuel Lima",
                 role: "Treinador de Físico",
-                desc: "Passagens pelo Santos, Tatuaté e Rio Claro",
+                desc: "Atuação pelo Santos, Tatuaté e Rio Claro",
                 img: "/Manuel.jpg"
               },
               {
                 name: "Thiago José",
                 role: "Professor e Coaching",
-                desc: "Passagens pelo UNIÃO e FORÇA, Clube Regatas Brasil, Operario Ferroviario, Redbulls Bragantino e Palmeiras",
+                desc: "Atuação pelo União e Força, Clube Regatas Brasil, Operario Ferroviario, Redbulls Bragantino e Palmeiras",
                 img: "/Thiago.jpg"
               },
               {
                 name: "Amir Horiquini",
                 role: "Nutricionista CRN3 73522",
-                desc: "Mestre em Biociências - USP. Doutorando em Biotecnologia da saúde",
+                desc: "Pós-grad. Nutrição Clínica e Funcional | Mestre em Biociências - USP| Doutorando em Biotecnologia da saúde",
                 img: "/Amir.jpg"
               }
             ].map((member, i) => (
@@ -469,7 +552,7 @@ export default function Landing() {
       </section>
 
       {/* Parceria Nutricional */}
-      <section className="py-24 px-4 relative z-10 bg-transparent">
+      <section className="py-10 px-4 relative z-10 bg-transparent">
         <div className="max-w-3xl mx-auto flex flex-col items-center text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-sm font-bold border border-green-500/20">
             <Utensils size={16} />
@@ -484,7 +567,7 @@ export default function Landing() {
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl mt-6 text-left w-full">
             <h4 className="font-bold text-xl mb-2 flex items-center gap-2">
               <Trophy className="text-yellow-500" size={20} />
-              Vantagens da Parceria
+              Vantagens
             </h4>
             <p className="text-slate-400">Planos alimentares focados em ganho de massa, perda de percentual de gordura e estratégias de suplementação para dias de jogos e treinos intensos.</p>
           </div>
@@ -492,7 +575,7 @@ export default function Landing() {
       </section>
 
       {/* CTA Final */}
-      <section className="py-24 px-4 relative z-10 bg-slate-900/40 backdrop-blur-md text-center overflow-hidden border-t border-slate-800">
+      <section className="py-10 px-4 relative z-10 bg-slate-900/40 backdrop-blur-md text-center overflow-hidden border-t border-slate-800">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 mix-blend-overlay"></div>
         <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
           <h2 className="text-4xl md:text-6xl font-black italic mb-6 uppercase drop-shadow-lg">
@@ -501,13 +584,24 @@ export default function Landing() {
           <p className="text-slate-300 text-xl mb-10">
             Junte-se à ELS POWER e tenha acesso ao treinamento, acompanhamento e estrutura que os atletas profissionais utilizam.
           </p>
-          <Link
-            to="/login"
-            className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg active:scale-[0.98] transition-all"
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            animate={{ 
+              boxShadow: ["0px 0px 0px rgba(249,115,22,0)", "0px 0px 20px rgba(249,115,22,0.4)", "0px 0px 0px rgba(249,115,22,0)"]
+            }}
+            transition={{ 
+              boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+            }}
           >
-            INICIAR TREINAMENTO
-            <ChevronRight size={20} />
-          </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-base py-3 px-6 rounded-xl shadow-lg transition-all"
+            >
+              INICIAR TREINAMENTO
+              <ChevronRight size={20} />
+            </Link>
+          </motion.div>
         </div>
       </section>
       
