@@ -517,14 +517,14 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: "Manuel Lima",
-                role: "Treinador de Físico",
+                name: "Manoel Lima",
+                role: "Professor & Coaching",
                 desc: "Atuação pelo Santos, Tatuaté e Rio Claro",
                 img: "/Manuel.jpg"
               },
               {
                 name: "Thiago José",
-                role: "Professor e Coaching",
+                role: "Preparador Físico",
                 desc: "Atuação pelo União e Força, Clube Regatas Brasil, Operario Ferroviario, Redbulls Bragantino e Palmeiras",
                 img: "/Thiago.jpg"
               },
