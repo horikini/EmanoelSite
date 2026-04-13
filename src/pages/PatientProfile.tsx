@@ -58,6 +58,17 @@ interface Patient {
   evaluations: Evaluation[];
 }
 
+interface Appointment {
+  id: string;
+  athleteId: number;
+  athleteName: string;
+  date: string;
+  time: string;
+  type: string;
+  status: 'pending' | 'confirmed' | 'canceled';
+  createdAt: string;
+}
+
 // --- Mock Data Generator ---
 const generateMockEvaluations = (): Evaluation[] => {
   return [
@@ -198,12 +209,23 @@ export default function PatientProfile() {
     acompanhamento: true,
     historico: true,
     avaliacao: true,
-    especifica: true
+    especifica: true,
+    agendamentos: true
   });
   const [bfEquation, setBfEquation] = useState<'pollock3' | 'pollock7' | 'guedes'>('pollock7');
   const [showAllDates, setShowAllDates] = useState(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   const isAdmin = localStorage.getItem('userRole') === 'admin';
+
+  useEffect(() => {
+    // Load appointments
+    const savedApps = localStorage.getItem('els_appointments');
+    if (savedApps) {
+      const allApps: Appointment[] = JSON.parse(savedApps);
+      setAppointments(allApps.filter(a => a.athleteId === Number(id) || a.athleteName === patient?.name));
+    }
+  }, [id, patient?.name]);
 
   useEffect(() => {
     const savedRecords = localStorage.getItem('els_records');
@@ -376,6 +398,47 @@ export default function PatientProfile() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">{patient.position1 || '-'} {patient.position2 ? `/ ${patient.position2}` : ''}</p>
               </div>
             </div>
+        </AccordionSection>
+
+        {/* AGENDAMENTOS SECTION */}
+        <AccordionSection 
+          title="Agendamentos" 
+          icon={Calendar} 
+          isOpen={openSections.agendamentos} 
+          onToggle={() => toggleSection('agendamentos')}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+            {appointments.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                Nenhum agendamento para este atleta.
+              </div>
+            ) : (
+              appointments.map(app => (
+                <div key={app.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="flex justify-between items-start mb-2">
+                    <p className="text-[10px] text-orange-500 font-bold uppercase tracking-wider">{app.type}</p>
+                    <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                      app.status === 'confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                      app.status === 'canceled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    }`}>
+                      {app.status === 'confirmed' ? 'Confirmado' : app.status === 'canceled' ? 'Cancelado' : 'Pendente'}
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
+                      <Calendar size={12} />
+                      {new Date(app.date).toLocaleDateString('pt-BR')}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
+                      <Timer size={12} />
+                      {app.time}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </AccordionSection>
 
         {/* 2. EVOLUÇÃO */}

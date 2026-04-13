@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Zap, Trophy, Dumbbell, Target, HeartPulse, LineChart, Utensils, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Zap, Trophy, Dumbbell, Target, HeartPulse, LineChart, Utensils, ShieldCheck, Lock, Users } from 'lucide-react';
 
 export default function Landing() {
   return (
@@ -44,15 +44,17 @@ export default function Landing() {
         <div className="flex gap-3">
           <Link
             to="/login"
-            className="bg-orange-500/10 border border-orange-500/50 text-orange-400 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-orange-500 hover:text-white transition-all"
+            className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/50 text-orange-400 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-orange-500 hover:text-white transition-all"
           >
-            Acesso Atleta
+            <Lock size={12} />
+            ATLETA
           </Link>
           <Link
             to="/login"
-            className="bg-slate-800/50 border border-slate-700 text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-slate-700 transition-all"
+            className="flex items-center gap-2 bg-slate-800/50 border border-slate-700 text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-slate-700 transition-all"
           >
-            Equipe
+            <Lock size={12} />
+            EQUIPE
           </Link>
         </div>
       </header>
@@ -398,6 +400,74 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Equipe / Time */}
+      <section className="py-24 px-4 relative z-10 bg-transparent">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-sm font-bold border border-orange-500/20 mb-4">
+              <Users size={16} />
+              <span>NOSSA EQUIPE</span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-black italic mb-4">O TIME POR TRÁS DO SEU SUCESSO</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto text-lg">Especialistas dedicados a transformar seu potencial em performance de elite.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Manuel Lima",
+                role: "Treinador de Físico",
+                desc: "Passagens pelo Santos, Tatuaté e Rio Claro",
+                img: "/Manuel.jpg"
+              },
+              {
+                name: "Thiago José",
+                role: "Professor e Coaching",
+                desc: "Passagens pelo UNIÃO e FORÇA, Clube Regatas Brasil, Operario Ferroviario, Redbulls Bragantino e Palmeiras",
+                img: "/Thiago.jpg"
+              },
+              {
+                name: "Amir Horiquini",
+                role: "Nutricionista CRN3 73522",
+                desc: "Mestre em Biociências - USP. Doutorando em Biotecnologia da saúde",
+                img: "/Amir.jpg"
+              }
+            ].map((member, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-slate-900/40 backdrop-blur-sm border border-slate-800 p-8 rounded-[2.5rem] text-center group hover:border-orange-500/30 transition-all duration-500"
+              >
+                <div className="relative w-40 h-40 mx-auto mb-6">
+                  {/* Rotating Ring */}
+                  <motion.div 
+                    className="absolute -inset-2 rounded-full border border-dashed border-orange-500/40"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                  />
+                  <div className="w-full h-full rounded-full overflow-hidden border-4 border-slate-800 relative z-10 shadow-2xl">
+                    <img 
+                      src={member.img} 
+                      alt={member.name}
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100"
+                      onError={(e) => {
+                        e.currentTarget.src = `https://picsum.photos/seed/${member.name}/400/400`;
+                      }}
+                    />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-1">{member.name}</h3>
+                <p className="text-orange-500 font-bold text-sm uppercase tracking-wider mb-4">{member.role}</p>
+                <p className="text-slate-400 text-sm leading-relaxed">{member.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Parceria Nutricional */}
       <section className="py-24 px-4 relative z-10 bg-transparent">
         <div className="max-w-3xl mx-auto flex flex-col items-center text-center space-y-6">
@@ -406,7 +476,7 @@ export default function Landing() {
             <span>O COMBUSTÍVEL DO CAMPEÃO</span>
           </div>
           <h2 className="text-3xl md:text-5xl font-black italic leading-tight">
-            Parceria com <span className="text-green-500">Nutricionista Esportivo</span>
+            Nutricionista <span className="text-green-500">Funcional</span>
           </h2>
           <p className="text-slate-300 text-lg leading-relaxed">
             O treino destrói, a alimentação constrói. Para garantir que você tenha a melhor recuperação e energia em campo, oferecemos acompanhamento nutricional especializado.

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Activity, Droplets, Flame, CheckCircle2, LogOut } from 'lucide-react';
+import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 const URINE_COLORS = [
@@ -15,19 +15,50 @@ const URINE_COLORS = [
   { id: '8', color: '#ef4444', label: 'Avermelhada ou rosada', desc: 'Atenção médica imediata.' },
 ];
 
+type Appointment = {
+  id: string;
+  athleteId: number;
+  athleteName: string;
+  date: string;
+  time: string;
+  type: string;
+  status: 'pending' | 'confirmed' | 'canceled';
+  createdAt: string;
+};
+
 export default function UserDashboard() {
   const navigate = useNavigate();
   const [pain, setPain] = useState<number>(0);
   const [fatigue, setFatigue] = useState<number>(0);
   const [hydration, setHydration] = useState<string>('');
   const [submitted, setSubmitted] = useState(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     if (role !== 'user') {
       navigate('/login');
     }
+
+    // Load appointments (mocking current athlete ID as 1 for now)
+    const savedApps = localStorage.getItem('els_appointments');
+    if (savedApps) {
+      const allApps: Appointment[] = JSON.parse(savedApps);
+      // In a real app, we'd filter by the logged-in user's ID
+      // For this demo, we'll show all pending appointments for "João Atleta" (ID 1)
+      setAppointments(allApps.filter(a => a.athleteId === 1 || a.athleteName === 'João Atleta'));
+    }
   }, [navigate]);
+
+  const handleUpdateAppointmentStatus = (id: string, status: 'confirmed' | 'canceled') => {
+    const savedApps = localStorage.getItem('els_appointments');
+    if (savedApps) {
+      const allApps: Appointment[] = JSON.parse(savedApps);
+      const updated = allApps.map(a => a.id === id ? { ...a, status } : a);
+      localStorage.setItem('els_appointments', JSON.stringify(updated));
+      setAppointments(updated.filter(a => a.athleteId === 1 || a.athleteName === 'João Atleta'));
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -113,6 +144,59 @@ export default function UserDashboard() {
       </header>
 
       <main className="p-4 max-w-md mx-auto">
+        {/* Appointments Section */}
+        {appointments.some(a => a.status === 'pending') && (
+          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-2 mb-4">
+              <CalendarIcon className="text-orange-500" size={20} />
+              <h3 className="font-bold text-slate-800 dark:text-white">Agendamentos Pendentes</h3>
+            </div>
+            <div className="space-y-3">
+              {appointments.filter(a => a.status === 'pending').map(app => (
+                <div key={app.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border-2 border-orange-100 dark:border-orange-900/30 shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-[10px] text-orange-500 font-bold uppercase tracking-wider">{app.type}</p>
+                      <p className="font-bold text-slate-800 dark:text-white">Confirme sua presença</p>
+                    </div>
+                    <div className="bg-orange-100 dark:bg-orange-900/30 p-1.5 rounded-lg">
+                      <Clock size={16} className="text-orange-600 dark:text-orange-400" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4 mb-4">
+                    <div className="flex items-center gap-1.5">
+                      <CalendarIcon size={14} className="text-slate-400" />
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(app.date).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={14} className="text-slate-400" />
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{app.time}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleUpdateAppointmentStatus(app.id, 'confirmed')}
+                      className="flex-1 bg-green-500 text-white py-2 rounded-xl text-xs font-bold hover:bg-green-600 transition flex items-center justify-center gap-1.5"
+                    >
+                      <Check size={14} />
+                      Confirmar
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateAppointmentStatus(app.id, 'canceled')}
+                      className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-2 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-1.5"
+                    >
+                      <X size={14} />
+                      Recusar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Como você está hoje?</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Preencha com sinceridade para ajustarmos seu treino.</p>

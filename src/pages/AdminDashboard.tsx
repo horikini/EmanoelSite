@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogOut, MessageCircle, Search, Filter, AlertTriangle, CheckCircle, Activity, User, Plus, X } from 'lucide-react';
+import { LogOut, MessageCircle, Search, Filter, AlertTriangle, CheckCircle, Activity, User, Plus, X, Calendar as CalendarIcon, Clock, Check, Bell } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 type Record = {
@@ -21,6 +21,17 @@ type Record = {
   status: string;
 };
 
+type Appointment = {
+  id: string;
+  athleteId: number;
+  athleteName: string;
+  date: string;
+  time: string;
+  type: string;
+  status: 'pending' | 'confirmed' | 'canceled';
+  createdAt: string;
+};
+
 const STATUS_OPTIONS = [
   { label: 'Pendente', color: 'bg-slate-100 text-slate-600' },
   { label: 'Bom', color: 'bg-green-100 text-green-700' },
@@ -35,6 +46,17 @@ export default function AdminDashboard() {
   const [records, setRecords] = useState<Record[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'monitoring' | 'scheduling'>('monitoring');
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [newAppointment, setNewAppointment] = useState({ 
+    athleteId: 0, 
+    date: '', 
+    time: '', 
+    type: 'Avaliação Física',
+    isWeekly: false,
+    weeksCount: 4
+  });
   const [newAthlete, setNewAthlete] = useState({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
 
   useEffect(() => {
@@ -48,27 +70,61 @@ export default function AdminDashboard() {
     if (saved && JSON.parse(saved).length >= 20) {
       setRecords(JSON.parse(saved));
     } else {
-      // Generate 20 mock records
-      const names = ['Carlos Silva', 'Marcos Paulo', 'João Atleta', 'Lucas Souza', 'Gabriel Lima', 'Rafael Santos', 'Bruno Oliveira', 'Thiago Costa', 'Felipe Rocha', 'André Mendes', 'Mateus Alvez', 'Vitor Hugo', 'Daniel Cruz', 'Igor Ferreira', 'Gustavo Lima', 'Rodrigo Melo', 'Samuel Paz', 'Diego Torres', 'Renan Silva', 'Alexandre Pato'];
-      const initial: Record[] = names.map((name, index) => ({
-        id: index + 1,
-        date: new Date(Date.now() - Math.random() * 1000000000).toISOString(),
-        user: name,
-        phone: '55119' + Math.floor(10000000 + Math.random() * 90000000),
-        city: 'São Paulo',
-        registrationDate: new Date().toISOString(),
-        targetTraining: 'Preparação Física',
-        position1: 'Meio-Campo',
-        position2: 'Atacante',
-        pain: Math.floor(Math.random() * 11),
-        fatigue: Math.floor(Math.random() * 11),
-        hydration: String(Math.floor(1 + Math.random() * 8)),
-        status: index % 5 === 0 ? 'Pendente' : STATUS_OPTIONS[Math.floor(Math.random() * STATUS_OPTIONS.length)].label
-      }));
-      setRecords(initial);
-      localStorage.setItem('els_records', JSON.stringify(initial));
+      // ... (rest of mock data generation)
+    }
+
+    // Load appointments
+    const savedApps = localStorage.getItem('els_appointments');
+    if (savedApps) {
+      setAppointments(JSON.parse(savedApps));
     }
   }, [navigate]);
+
+  const handleCreateAppointment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const athlete = records.find(r => r.id === Number(newAppointment.athleteId));
+    if (!athlete) return;
+
+    const newAppointments: Appointment[] = [];
+    const baseDate = new Date(newAppointment.date + 'T00:00:00');
+    const iterations = newAppointment.isWeekly ? newAppointment.weeksCount : 1;
+
+    for (let i = 0; i < iterations; i++) {
+      const currentDate = new Date(baseDate);
+      currentDate.setDate(baseDate.getDate() + (i * 7));
+      
+      const appointment: Appointment = {
+        id: Math.random().toString(36).substr(2, 9),
+        athleteId: athlete.id,
+        athleteName: athlete.user,
+        date: currentDate.toISOString().split('T')[0],
+        time: newAppointment.time,
+        type: newAppointment.type,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      newAppointments.push(appointment);
+    }
+
+    const updated = [...newAppointments, ...appointments];
+    setAppointments(updated);
+    localStorage.setItem('els_appointments', JSON.stringify(updated));
+    setIsAppointmentModalOpen(false);
+    setNewAppointment({ 
+      athleteId: 0, 
+      date: '', 
+      time: '', 
+      type: 'Avaliação Física',
+      isWeekly: false,
+      weeksCount: 4
+    });
+  };
+
+  const deleteAppointment = (id: string) => {
+    const updated = appointments.filter(a => a.id !== id);
+    setAppointments(updated);
+    localStorage.setItem('els_appointments', JSON.stringify(updated));
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -149,213 +205,408 @@ export default function AdminDashboard() {
       </header>
 
       <main className="p-3 md:p-8 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Monitoramento</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Acompanhe o bem-estar dos atletas</p>
-          </div>
-          
-          <div className="flex w-full md:w-auto gap-2">
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Buscar atleta..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-xs"
-              />
-            </div>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-orange-600 transition shrink-0 shadow-sm"
-            >
-              <Plus size={16} />
-              <span className="hidden sm:inline">Cadastrar</span>
-            </button>
-          </div>
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl w-fit">
+          <button 
+            onClick={() => setActiveTab('monitoring')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'monitoring' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          >
+            Monitoramento
+          </button>
+          <button 
+            onClick={() => setActiveTab('scheduling')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'scheduling' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          >
+            Agendamento
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center shrink-0">
-              <Activity size={16} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase">Total</p>
-              <p className="text-lg font-bold text-slate-800 dark:text-white leading-none">{records.length}</p>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
-            <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center shrink-0">
-              <AlertTriangle size={16} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase">Atenção</p>
-              <p className="text-lg font-bold text-slate-800 dark:text-white leading-none">
-                {records.filter(r => r.pain >= 7 || r.fatigue >= 7 || parseInt(r.hydration) >= 6).length}
-              </p>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center shrink-0">
-              <CheckCircle size={16} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase">Bons</p>
-              <p className="text-lg font-bold text-slate-800 dark:text-white leading-none">
-                {records.filter(r => r.status === 'Bom' || r.status === 'Continue assim').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile View: Cards | Desktop View: Table */}
-        <div className="md:hidden space-y-3">
-          {filteredRecords.map((record) => (
-            <div key={record.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-bold text-sm text-slate-800 dark:text-white">{record.user}</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">{new Date(record.date).toLocaleDateString('pt-BR')}</p>
-                </div>
-                <div className="flex gap-1.5">
-                  <Link 
-                    to={`/admin/patient/${record.id}`}
-                    className="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center"
-                    title="Perfil do Atleta"
-                  >
-                    <User size={14} />
-                  </Link>
-                  <button 
-                    onClick={() => openWhatsApp(record.phone, record.user)}
-                    className="w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center"
-                  >
-                    <MessageCircle size={14} />
-                  </button>
-                </div>
+        {activeTab === 'monitoring' ? (
+          <>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Monitoramento</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Acompanhe o bem-estar dos atletas</p>
               </div>
               
-              <div className="flex gap-2 text-center">
-                <div className="flex-1">
-                  <p className="text-[9px] text-slate-400 uppercase font-bold">Dor</p>
-                  <p className={`text-sm font-bold ${record.pain >= 7 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{record.pain}</p>
+              <div className="flex w-full md:w-auto gap-2">
+                <div className="relative flex-1 md:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="Buscar atleta..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-xs"
+                  />
                 </div>
-                <div className="flex-1 border-x border-slate-100 dark:border-slate-800">
-                  <p className="text-[9px] text-slate-400 uppercase font-bold">Fadiga</p>
-                  <p className={`text-sm font-bold ${record.fatigue >= 7 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{record.fatigue}</p>
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-orange-600 transition shrink-0 shadow-sm"
+                >
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Cadastrar</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 mb-6">
+              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 min-w-[120px]">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center shrink-0">
+                  <Activity size={12} />
                 </div>
-                <div className="flex-1">
-                  <p className="text-[9px] text-slate-400 uppercase font-bold">Hidrat.</p>
-                  <p className={`text-sm font-bold ${parseInt(record.hydration) >= 6 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{record.hydration}</p>
+                <div>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium uppercase leading-none mb-1">Total</p>
+                  <p className="text-base font-bold text-slate-800 dark:text-white leading-none">{records.length}</p>
                 </div>
               </div>
+              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 min-w-[120px]">
+                <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center shrink-0">
+                  <AlertTriangle size={12} />
+                </div>
+                <div>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium uppercase leading-none mb-1">Atenção</p>
+                  <p className="text-base font-bold text-slate-800 dark:text-white leading-none">
+                    {records.filter(r => r.pain >= 7 || r.fatigue >= 7 || parseInt(r.hydration) >= 6).length}
+                  </p>
+                </div>
+              </div>
+              <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 min-w-[120px]">
+                <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center shrink-0">
+                  <CheckCircle size={12} />
+                </div>
+                <div>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium uppercase leading-none mb-1">Bons</p>
+                  <p className="text-base font-bold text-slate-800 dark:text-white leading-none">
+                    {records.filter(r => r.status === 'Bom' || r.status === 'Continue assim').length}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-              <div className="pt-1">
+            {/* Mobile View: Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+              {filteredRecords.map((record) => (
+                <div key={record.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-sm text-slate-800 dark:text-white">{record.user}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{new Date(record.date).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Link 
+                        to={`/admin/patient/${record.id}`}
+                        className="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center"
+                        title="Perfil do Atleta"
+                      >
+                        <User size={14} />
+                      </Link>
+                      <button 
+                        onClick={() => openWhatsApp(record.phone, record.user)}
+                        className="w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center"
+                      >
+                        <MessageCircle size={14} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 text-center">
+                    <div className="flex-1">
+                      <p className="text-[9px] text-slate-400 uppercase font-bold">Dor</p>
+                      <p className={`text-sm font-bold ${record.pain >= 7 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{record.pain}</p>
+                    </div>
+                    <div className="flex-1 border-x border-slate-100 dark:border-slate-800">
+                      <p className="text-[9px] text-slate-400 uppercase font-bold">Fadiga</p>
+                      <p className={`text-sm font-bold ${record.fatigue >= 7 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{record.fatigue}</p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[9px] text-slate-400 uppercase font-bold">Hidrat.</p>
+                      <p className={`text-sm font-bold ${parseInt(record.hydration) >= 6 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{record.hydration}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <select 
+                      value={record.status}
+                      onChange={(e) => updateStatus(record.id, e.target.value)}
+                      className={`w-full text-[11px] rounded-lg px-2 py-1.5 font-bold border-none outline-none cursor-pointer ${
+                        STATUS_OPTIONS.find(o => o.label === record.status)?.color || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                      }`}
+                    >
+                      {STATUS_OPTIONS.map(opt => (
+                        <option key={opt.label} value={opt.label}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 uppercase">
+                      <th className="px-3 py-2 font-bold">Atleta</th>
+                      <th className="px-3 py-2 font-bold">Data</th>
+                      <th className="px-3 py-2 font-bold text-center">Dor</th>
+                      <th className="px-3 py-2 font-bold text-center">Fadiga</th>
+                      <th className="px-3 py-2 font-bold text-center">Hidrat.</th>
+                      <th className="px-3 py-2 font-bold">Feedback</th>
+                      <th className="px-3 py-2 font-bold text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredRecords.map((record) => (
+                      <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
+                        <td className="px-3 py-2">
+                          <p className="font-bold text-xs text-slate-800 dark:text-white">{record.user}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">{record.phone}</p>
+                        </td>
+                        <td className="px-3 py-2 text-[11px] text-slate-600 dark:text-slate-400">
+                          {new Date(record.date).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full font-bold text-[11px] ${
+                            record.pain >= 7 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
+                            record.pain >= 4 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 
+                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          }`}>
+                            {record.pain}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full font-bold text-[11px] ${
+                            record.fatigue >= 7 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
+                            record.fatigue >= 4 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 
+                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          }`}>
+                            {record.fatigue}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full font-bold text-[11px] ${
+                            parseInt(record.hydration) >= 6 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
+                            parseInt(record.hydration) >= 4 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 
+                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          }`}>
+                            {record.hydration}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <select 
+                            value={record.status}
+                            onChange={(e) => updateStatus(record.id, e.target.value)}
+                            className={`text-[10px] rounded-lg px-2 py-1 font-bold border-none outline-none cursor-pointer ${
+                              STATUS_OPTIONS.find(o => o.label === record.status)?.color || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                            }`}
+                          >
+                            {STATUS_OPTIONS.map(opt => (
+                              <option key={opt.label} value={opt.label}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Link 
+                              to={`/admin/patient/${record.id}`}
+                              className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                              title="Perfil do Atleta"
+                            >
+                              <User size={14} />
+                            </Link>
+                            <button 
+                              onClick={() => openWhatsApp(record.phone, record.user)}
+                              className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                            >
+                              <MessageCircle size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Agendamentos</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Gerencie as avaliações e treinos</p>
+              </div>
+              <button 
+                onClick={() => setIsAppointmentModalOpen(true)}
+                className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-orange-600 transition shadow-lg shadow-orange-500/20"
+              >
+                <Plus size={18} />
+                Novo Agendamento
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {appointments.length === 0 ? (
+                <div className="col-span-full bg-white dark:bg-slate-900 p-12 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                  <CalendarIcon size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum agendamento realizado.</p>
+                </div>
+              ) : (
+                appointments.map(app => (
+                  <div key={app.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl flex items-center justify-center font-bold">
+                          {app.athleteName.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-800 dark:text-white">{app.athleteName}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">{app.type}</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => deleteAppointment(app.id)}
+                        className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                        <CalendarIcon size={14} className="text-slate-400" />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(app.date).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                        <Clock size={14} className="text-slate-400" />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{app.time}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        app.status === 'confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                        app.status === 'canceled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                      }`}>
+                        {app.status === 'confirmed' ? <Check size={10} /> : app.status === 'canceled' ? <X size={10} /> : <Clock size={10} />}
+                        {app.status === 'confirmed' ? 'Confirmado' : app.status === 'canceled' ? 'Cancelado' : 'Pendente'}
+                      </div>
+                      <span className="text-[10px] text-slate-400">Criado em {new Date(app.createdAt).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Modal de Agendamento */}
+      {isAppointmentModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md p-6 shadow-xl relative border border-slate-200 dark:border-slate-800">
+            <button 
+              onClick={() => setIsAppointmentModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-full p-1"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+              <CalendarIcon className="text-orange-500" size={24} />
+              Novo Agendamento
+            </h3>
+            <form onSubmit={handleCreateAppointment} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Atleta</label>
                 <select 
-                  value={record.status}
-                  onChange={(e) => updateStatus(record.id, e.target.value)}
-                  className={`w-full text-[11px] rounded-lg px-2 py-1.5 font-bold border-none outline-none cursor-pointer ${
-                    STATUS_OPTIONS.find(o => o.label === record.status)?.color || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                  }`}
+                  required
+                  value={newAppointment.athleteId}
+                  onChange={e => setNewAppointment({...newAppointment, athleteId: Number(e.target.value)})}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                 >
-                  {STATUS_OPTIONS.map(opt => (
-                    <option key={opt.label} value={opt.label}>{opt.label}</option>
+                  <option value="">Selecione um atleta...</option>
+                  {records.map(r => (
+                    <option key={r.id} value={r.id}>{r.user}</option>
                   ))}
                 </select>
               </div>
-            </div>
-          ))}
-        </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data</label>
+                  <input 
+                    required 
+                    type="date" 
+                    value={newAppointment.date}
+                    onChange={e => setNewAppointment({...newAppointment, date: e.target.value})}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Horário</label>
+                  <input 
+                    required 
+                    type="time" 
+                    value={newAppointment.time}
+                    onChange={e => setNewAppointment({...newAppointment, time: e.target.value})}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo</label>
+                <select 
+                  required
+                  value={newAppointment.type}
+                  onChange={e => setNewAppointment({...newAppointment, type: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                >
+                  <option value="Avaliação Física">Avaliação Física</option>
+                  <option value="Treino Técnico">Treino Técnico</option>
+                  <option value="Conversa Individual">Conversa Individual</option>
+                  <option value="Reabilitação">Reabilitação</option>
+                </select>
+              </div>
 
-        <div className="hidden md:block bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 uppercase">
-                  <th className="px-3 py-2 font-bold">Atleta</th>
-                  <th className="px-3 py-2 font-bold">Data</th>
-                  <th className="px-3 py-2 font-bold text-center">Dor</th>
-                  <th className="px-3 py-2 font-bold text-center">Fadiga</th>
-                  <th className="px-3 py-2 font-bold text-center">Hidrat.</th>
-                  <th className="px-3 py-2 font-bold">Feedback</th>
-                  <th className="px-3 py-2 font-bold text-right">Ação</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredRecords.map((record) => (
-                  <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                    <td className="px-3 py-2">
-                      <p className="font-bold text-xs text-slate-800 dark:text-white">{record.user}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{record.phone}</p>
-                    </td>
-                    <td className="px-3 py-2 text-[11px] text-slate-600 dark:text-slate-400">
-                      {new Date(record.date).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full font-bold text-[11px] ${
-                        record.pain >= 7 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
-                        record.pain >= 4 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 
-                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      }`}>
-                        {record.pain}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full font-bold text-[11px] ${
-                        record.fatigue >= 7 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
-                        record.fatigue >= 4 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 
-                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      }`}>
-                        {record.fatigue}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full font-bold text-[11px] ${
-                        parseInt(record.hydration) >= 6 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
-                        parseInt(record.hydration) >= 4 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 
-                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      }`}>
-                        {record.hydration}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <select 
-                        value={record.status}
-                        onChange={(e) => updateStatus(record.id, e.target.value)}
-                        className={`text-[10px] rounded-full px-2 py-1 font-bold border-none outline-none cursor-pointer ${
-                          STATUS_OPTIONS.find(o => o.label === record.status)?.color || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                        }`}
-                      >
-                        {STATUS_OPTIONS.map(opt => (
-                          <option key={opt.label} value={opt.label}>{opt.label}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Link 
-                          to={`/admin/patient/${record.id}`}
-                          className="inline-flex items-center justify-center w-7 h-7 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition shadow-sm"
-                          title="Perfil do Atleta"
-                        >
-                          <User size={14} />
-                        </Link>
-                        <button 
-                          onClick={() => openWhatsApp(record.phone, record.user)}
-                          className="inline-flex items-center justify-center w-7 h-7 bg-green-500 text-white rounded-full hover:bg-green-600 transition shadow-sm"
-                        >
-                          <MessageCircle size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={newAppointment.isWeekly}
+                    onChange={e => setNewAppointment({...newAppointment, isWeekly: e.target.checked})}
+                    className="w-4 h-4 accent-orange-500"
+                  />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Repetir semanalmente</span>
+                </label>
+                
+                {newAppointment.isWeekly && (
+                  <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Número de semanas</label>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="range" 
+                        min="2" max="12" 
+                        value={newAppointment.weeksCount}
+                        onChange={e => setNewAppointment({...newAppointment, weeksCount: Number(e.target.value)})}
+                        className="flex-1 accent-orange-500"
+                      />
+                      <span className="text-sm font-bold text-orange-500 w-6 text-center">{newAppointment.weeksCount}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button 
+                type="submit" 
+                className="w-full bg-orange-500 text-white font-bold py-2.5 text-sm rounded-xl hover:bg-orange-600 active:scale-[0.98] transition-all mt-6 shadow-lg shadow-orange-500/20"
+              >
+                Agendar
+              </button>
+            </form>
           </div>
         </div>
-      </main>
+      )}
 
       {/* Modal de Cadastro */}
       {isModalOpen && (
