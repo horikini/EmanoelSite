@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { supabase } from '../lib/supabase';
+import { supabaseService, Profile, Appointment } from '../lib/supabaseService';
 
 const URINE_COLORS = [
   { id: '1', color: '#ffffff', label: 'Transparente (como água pura)', desc: 'Hidratação excessiva ou ideal' },
@@ -15,17 +17,6 @@ const URINE_COLORS = [
   { id: '8', color: '#ef4444', label: 'Avermelhada ou rosada', desc: 'Atenção médica imediata.' },
 ];
 
-type Appointment = {
-  id: string;
-  athleteId: number;
-  athleteName: string;
-  date: string;
-  time: string;
-  type: string;
-  status: 'pending' | 'confirmed' | 'canceled';
-  createdAt: string;
-};
-
 export default function UserDashboard() {
   const navigate = useNavigate();
   const [pain, setPain] = useState<number>(0);
@@ -33,79 +24,94 @@ export default function UserDashboard() {
   const [hydration, setHydration] = useState<string>('');
   const [submitted, setSubmitted] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [userPhoto, setUserPhoto] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
-    if (role !== 'user') {
+    if (role !== 'athlete' && role !== 'user') { // Keep 'user' for backward compatibility during transition
       navigate('/login');
+      return;
     }
 
-    // Check if already submitted today
-    const today = new Date().toISOString().split('T')[0];
-    const hasSubmittedToday = localStorage.getItem(`els_submitted_${today}`);
-    if (hasSubmittedToday) {
-      setSubmitted(true);
-    }
+    const loadData = async () => {
+      try {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          navigate('/login');
+          return;
+        }
 
-    // Load appointments (mocking current athlete ID as 1 for now)
-    const savedApps = localStorage.getItem('els_appointments');
-    if (savedApps) {
-      const allApps: Appointment[] = JSON.parse(savedApps);
-      setAppointments(allApps.filter(a => a.athleteId === 1 || a.athleteName === 'João Atleta'));
-    }
+        // Fetch profile
+        const userProfile = await supabaseService.getProfile(userId);
+        setProfile(userProfile);
 
-    // Load user photo
-    const savedRecords = localStorage.getItem('els_records');
-    if (savedRecords) {
-      const records = JSON.parse(savedRecords);
-      const userRecord = records.find((r: any) => r.id === 1 || r.user === 'João Atleta');
-      if (userRecord && userRecord.photo) {
-        setUserPhoto(userRecord.photo);
+        // Fetch appointments
+        const apps = await supabaseService.getAppointments(userId);
+        setAppointments(apps);
+
+        // Check if already submitted today
+        const today = new Date().toISOString().split('T')[0];
+        const records = await supabaseService.getMonitoringRecords(userId);
+        const hasSubmittedToday = records.some(r => r.date.startsWith(today));
+        
+        if (hasSubmittedToday) {
+          setSubmitted(true);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    loadData();
   }, [navigate]);
 
-  const handleUpdateAppointmentStatus = (id: string, status: 'confirmed' | 'canceled') => {
-    const savedApps = localStorage.getItem('els_appointments');
-    if (savedApps) {
-      const allApps: Appointment[] = JSON.parse(savedApps);
-      const updated = allApps.map(a => a.id === id ? { ...a, status } : a);
-      localStorage.setItem('els_appointments', JSON.stringify(updated));
-      setAppointments(updated.filter(a => a.athleteId === 1 || a.athleteName === 'João Atleta'));
+  const handleUpdateAppointmentStatus = async (id: string, status: 'confirmed' | 'canceled') => {
+    try {
+      await supabaseService.updateAppointmentStatus(id, status);
+      setAppointments(apps => apps.map(a => a.id === id ? { ...a, status } : a));
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      alert('Erro ao atualizar agendamento.');
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
     navigate('/');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hydration) return alert('Por favor, selecione a cor da urina.');
     
-    // Save mock data for admin
-    const record = {
-      id: Date.now(),
-      date: new Date().toISOString(),
-      user: 'João Atleta',
-      phone: '5511999999999',
-      pain,
-      fatigue,
-      hydration,
-      status: 'Pendente'
-    };
-    
-    const existing = JSON.parse(localStorage.getItem('els_records') || '[]');
-    localStorage.setItem('els_records', JSON.stringify([record, ...existing]));
-    
-    // Persist submission for today
-    const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem(`els_submitted_${today}`, 'true');
-    
-    setSubmitted(true);
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+
+    try {
+      await supabaseService.addMonitoringRecord({
+        athlete_id: userId,
+        date: new Date().toISOString(),
+        pain,
+        fatigue,
+        hydration,
+        status: 'Pendente'
+      });
+      
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting monitoring:', error);
+      alert('Erro ao enviar avaliação.');
+    }
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 dark:text-white">Carregando...</div>;
+  }
 
   if (submitted) {
     return (
@@ -122,7 +128,7 @@ export default function UserDashboard() {
           <p className="text-slate-500 dark:text-slate-400 text-sm">Seu feedback diário foi registrado com sucesso.</p>
           
           <button 
-            onClick={() => navigate('/patient/1')}
+            onClick={() => navigate(`/patient/${profile?.id}`)}
             className="mt-8 w-full bg-slate-900 dark:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition"
           >
             VER MEU PERFIL
@@ -160,9 +166,9 @@ export default function UserDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          {userPhoto ? (
+          {profile?.photo ? (
             <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-700">
-              <img src={userPhoto} alt="User" className="w-full h-full object-cover" />
+              <img src={profile.photo} alt="User" className="w-full h-full object-cover" />
             </div>
           ) : (
             <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">

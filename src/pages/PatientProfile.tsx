@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Phone, Activity, Ruler, Timer, Calendar, HelpCircle, Lock, Unlock, Plus, BarChart2, FileText, Target, ChevronDown, ChevronUp, MoreHorizontal, Camera, Edit2, Save, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
+import { supabase } from '../lib/supabase';
+import { supabaseService, Profile } from '../lib/supabaseService';
+
 // --- Interfaces ---
 interface SpecificTests {
   velocidade10m?: number;
@@ -43,7 +46,7 @@ interface Evaluation {
 }
 
 interface Patient {
-  id: number;
+  id: string | number;
   name: string;
   phone: string;
   email?: string;
@@ -61,7 +64,7 @@ interface Patient {
 
 interface Appointment {
   id: string;
-  athleteId: number;
+  athleteId: string | number;
   athleteName: string;
   date: string;
   time: string;
@@ -228,79 +231,92 @@ export default function PatientProfile() {
   });
 
   const isAdmin = localStorage.getItem('userRole') === 'admin';
-  const isUser = localStorage.getItem('userRole') === 'user';
+  const isUser = localStorage.getItem('userRole') === 'athlete' || localStorage.getItem('userRole') === 'user';
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load appointments
-    const savedApps = localStorage.getItem('els_appointments');
-    if (savedApps) {
-      const allApps: Appointment[] = JSON.parse(savedApps);
-      setAppointments(allApps.filter(a => a.athleteId === Number(id) || a.athleteName === patient?.name));
-    }
-  }, [id, patient?.name]);
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        if (!id) return;
 
-  useEffect(() => {
-    const savedRecords = localStorage.getItem('els_records');
-    let patientName = 'Atleta Desconhecido';
-    let phone = '(00) 00000-0000';
-    let email = '';
-    let city = '';
-    let registrationDate = '';
-    let targetTraining = '';
-    let position1 = '';
-    let position2 = '';
-    let photo = '';
-    
-    if (savedRecords) {
-      const records = JSON.parse(savedRecords);
-      const record = records.find((r: any) => r.id === Number(id));
-      if (record) {
-        patientName = record.user;
-        phone = record.phone;
-        email = record.email || '';
-        city = record.city || '';
-        registrationDate = record.registrationDate || '';
-        targetTraining = record.targetTraining || '';
-        position1 = record.position1 || '';
-        position2 = record.position2 || '';
-        photo = record.photo || '';
+        // Fetch profile
+        const profile = await supabaseService.getProfile(id);
+        
+        // Fetch evaluations
+        const evals = await supabaseService.getEvaluations(id);
+        
+        // Map evaluations from Supabase format
+        const mappedEvals: Evaluation[] = evals.map(e => ({
+          id: e.id,
+          date: e.date,
+          isLiberated: e.is_liberated,
+          weight: e.data.weight,
+          height: e.data.height,
+          measurements: e.data.measurements,
+          skinfolds: e.data.skinfolds,
+          specificTests: e.data.specificTests,
+          urineColor: e.data.urineColor,
+          painLevel: e.data.painLevel
+        }));
+
+        // If no evaluations, generate mock ones for demonstration
+        const finalEvals = mappedEvals.length > 0 ? mappedEvals : generateMockEvaluations();
+
+        setPatient({
+          id: profile.id,
+          name: profile.full_name,
+          phone: profile.phone || '(00) 00000-0000',
+          email: profile.email,
+          city: profile.city,
+          registrationDate: profile.registration_date,
+          targetTraining: profile.target_training,
+          position1: profile.position1,
+          position2: profile.position2,
+          photo: profile.photo,
+          age: profile.dob ? new Date().getFullYear() - new Date(profile.dob).getFullYear() : 20,
+          evaluations: finalEvals
+        });
+
+        setEditForm({
+          phone: profile.phone || '',
+          city: profile.city || '',
+          targetTraining: profile.target_training || '',
+          position1: profile.position1 || '',
+          position2: profile.position2 || '',
+          photo: profile.photo || ''
+        });
+
+        if (finalEvals.length > 0) {
+          setSelectedEvalId(finalEvals[finalEvals.length - 1].id);
+          setSelectedDates(finalEvals.map(e => e.id));
+        }
+
+        // Fetch appointments
+        const apps = await supabaseService.getAppointments();
+        setAppointments(apps.filter(a => String(a.athlete_id) === String(id)).map(a => ({
+          id: a.id || Math.random().toString(),
+          athleteId: a.athlete_id,
+          athleteName: a.profiles?.full_name || profile.full_name,
+          date: a.date,
+          time: a.time,
+          type: a.type,
+          status: a.status as any,
+          createdAt: a.date
+        })));
+
+      } catch (error) {
+        console.error('Error loading patient data:', error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
 
-    const evaluations = generateMockEvaluations();
-    setPatient({
-      id: Number(id),
-      name: patientName,
-      phone: phone,
-      email: email,
-      city: city,
-      registrationDate: registrationDate,
-      targetTraining: targetTraining,
-      position1: position1,
-      position2: position2,
-      photo: photo,
-      guardianName: 'Responsável Exemplo',
-      guardianPhone: '5511988887777',
-      age: 22,
-      evaluations: evaluations
-    });
-    
-    if (evaluations.length > 0) {
-      setSelectedEvalId(evaluations[evaluations.length - 1].id);
-      setSelectedDates(evaluations.map(e => e.id));
-    }
-
-    setEditForm({
-      phone: phone,
-      city: city,
-      targetTraining: targetTraining,
-      position1: position1,
-      position2: position2,
-      photo: photo
-    });
+    loadData();
   }, [id]);
 
-  if (!patient) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500">Carregando...</div>;
+  if (loading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500">Carregando...</div>;
+  if (!patient) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500">Atleta não encontrado.</div>;
 
   // Filter evaluations for user (only liberated ones) unless admin
   const visibleEvaluations = (isAdmin ? patient.evaluations : patient.evaluations.filter(e => e.isLiberated))
@@ -308,15 +324,54 @@ export default function PatientProfile() {
 
   const selectedEval = visibleEvaluations.find(e => e.id === selectedEvalId) || visibleEvaluations[visibleEvaluations.length - 1];
 
-  const toggleLiberation = (evalId: string) => {
+  const toggleLiberation = async (evalId: string) => {
     if (!isAdmin) return;
-    setPatient(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        evaluations: prev.evaluations.map(e => e.id === evalId ? { ...e, isLiberated: !e.isLiberated } : e)
-      };
-    });
+    try {
+      const ev = patient.evaluations.find(e => e.id === evalId);
+      if (!ev) return;
+      
+      if (!evalId.startsWith('eval-')) {
+        await supabaseService.updateEvaluation(evalId, { is_liberated: !ev.isLiberated });
+      }
+      
+      setPatient(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          evaluations: prev.evaluations.map(e => e.id === evalId ? { ...e, isLiberated: !e.isLiberated } : e)
+        };
+      });
+    } catch (error) {
+      console.error('Error toggling liberation:', error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!patient) return;
+    try {
+      await supabaseService.updateProfile(String(patient.id), {
+        phone: editForm.phone,
+        city: editForm.city,
+        target_training: editForm.targetTraining,
+        position1: editForm.position1,
+        position2: editForm.position2,
+        photo: editForm.photo
+      });
+      
+      setPatient({
+        ...patient,
+        phone: editForm.phone,
+        city: editForm.city,
+        targetTraining: editForm.targetTraining,
+        position1: editForm.position1,
+        position2: editForm.position2,
+        photo: editForm.photo
+      });
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Erro ao atualizar perfil.');
+    }
   };
 
   const toggleChartDate = (evalId: string) => {
@@ -327,42 +382,6 @@ export default function PatientProfile() {
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  const handleSaveProfile = () => {
-    if (!patient) return;
-    
-    const updatedPatient = {
-      ...patient,
-      phone: editForm.phone,
-      city: editForm.city,
-      targetTraining: editForm.targetTraining,
-      position1: editForm.position1,
-      position2: editForm.position2,
-      photo: editForm.photo
-    };
-    
-    setPatient(updatedPatient);
-    
-    // Persist to localStorage
-    const savedRecords = localStorage.getItem('els_records');
-    if (savedRecords) {
-      const records = JSON.parse(savedRecords);
-      const updatedRecords = records.map((r: any) => 
-        r.id === Number(id) ? { 
-          ...r, 
-          phone: editForm.phone,
-          city: editForm.city,
-          targetTraining: editForm.targetTraining,
-          position1: editForm.position1,
-          position2: editForm.position2,
-          photo: editForm.photo
-        } : r
-      );
-      localStorage.setItem('els_records', JSON.stringify(updatedRecords));
-    }
-    
-    setIsEditingProfile(false);
   };
 
   // Prepare Chart Data

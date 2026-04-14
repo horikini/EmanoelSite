@@ -4,7 +4,7 @@ import { LogOut, MessageCircle, Search, Filter, AlertTriangle, CheckCircle, Acti
 import { ThemeToggle } from '../components/ThemeToggle';
 
 type Record = {
-  id: number;
+  id: string | number;
   date: string;
   user: string;
   phone: string;
@@ -23,7 +23,7 @@ type Record = {
 
 type Appointment = {
   id: string;
-  athleteId: number;
+  athleteId: string | number;
   athleteName: string;
   date: string;
   time: string;
@@ -31,6 +31,9 @@ type Appointment = {
   status: 'pending' | 'confirmed' | 'canceled';
   createdAt: string;
 };
+
+import { supabase } from '../lib/supabase';
+import { supabaseService } from '../lib/supabaseService';
 
 const STATUS_OPTIONS = [
   { label: 'Pendente', color: 'bg-slate-100 text-slate-600' },
@@ -50,7 +53,7 @@ export default function AdminDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [newAppointment, setNewAppointment] = useState({ 
-    athleteId: 0, 
+    athleteId: '' as string | number, 
     date: new Date().toLocaleDateString('sv-SE'), 
     time: '', 
     type: 'Avaliação Física',
@@ -64,122 +67,140 @@ export default function AdminDashboard() {
     const role = localStorage.getItem('userRole');
     if (role !== 'admin') {
       navigate('/login');
+      return;
     }
 
-    // Load mock data
-    const saved = localStorage.getItem('els_records');
-    if (saved && JSON.parse(saved).length >= 10) {
-      setRecords(JSON.parse(saved));
-    } else {
-      const mockRecords: Record[] = [
-        {
-          id: 1,
-          date: new Date().toISOString(),
-          user: 'João Atleta',
-          phone: '5511999999999',
-          email: 'joao.atleta@email.com',
-          dob: '2002-05-15',
-          city: 'São Paulo',
-          registrationDate: '2023-01-10T10:00:00Z',
-          targetTraining: 'Futebol Profissional',
-          position1: 'Atacante',
-          position2: 'Ponta Direita',
-          pain: 2,
-          fatigue: 3,
-          hydration: "2",
-          status: "Bom"
-        },
-        // Historical records for João to simulate long-term tracking
-        ...Array.from({ length: 15 }).map((_, i) => ({
-          id: 1, // Same ID to simulate history in PatientProfile
-          date: new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
-          user: 'João Atleta',
-          phone: '5511999999999',
-          pain: Math.floor(Math.random() * 4),
-          fatigue: Math.floor(Math.random() * 5),
-          hydration: (Math.floor(Math.random() * 3) + 1).toString(),
-          status: i % 5 === 0 ? "Médio" : "Bom"
-        })),
-        { id: 2, date: new Date().toISOString(), user: 'Lucas Silva', phone: '5511988888888', pain: 8, fatigue: 7, hydration: "6", status: "Precisamos conversar" },
-        { id: 3, date: new Date().toISOString(), user: 'Mateus Santos', phone: '5511977777777', pain: 1, fatigue: 2, hydration: "1", status: "Bom" },
-        { id: 4, date: new Date().toISOString(), user: 'Ricardo Oliveira', phone: '5511966666666', pain: 4, fatigue: 5, hydration: "3", status: "Médio" },
-        { id: 5, date: new Date().toISOString(), user: 'Felipe Costa', phone: '5511955555555', pain: 0, fatigue: 1, hydration: "2", status: "Continue assim" },
-      ];
-      setRecords(mockRecords);
-      localStorage.setItem('els_records', JSON.stringify(mockRecords));
-    }
+    const loadData = async () => {
+      try {
+        const [profiles, monitoring, apps] = await Promise.all([
+          supabaseService.getProfiles(),
+          supabaseService.getMonitoringRecords(),
+          supabaseService.getAppointments()
+        ]);
 
-    // Load appointments
-    const savedApps = localStorage.getItem('els_appointments');
-    if (savedApps) {
-      setAppointments(JSON.parse(savedApps));
-    }
+        if (profiles && monitoring) {
+          const mappedRecords = monitoring.map(m => {
+            const profile = profiles.find(p => p.id === m.athlete_id);
+            return {
+              id: profile?.id || m.athlete_id,
+              date: m.date,
+              user: profile?.full_name || 'Desconhecido',
+              phone: profile?.phone || '',
+              email: profile?.email,
+              dob: profile?.dob,
+              city: profile?.city,
+              registrationDate: profile?.registration_date,
+              targetTraining: profile?.target_training,
+              position1: profile?.position1,
+              position2: profile?.position2,
+              pain: m.pain,
+              fatigue: m.fatigue,
+              hydration: m.hydration,
+              status: m.status
+            };
+          });
+          setRecords(mappedRecords);
+        }
+
+        if (apps) {
+          setAppointments(apps.map(a => ({
+            id: a.id || Math.random().toString(),
+            athleteId: a.athlete_id,
+            athleteName: a.profiles?.full_name || 'Desconhecido',
+            date: a.date,
+            time: a.time,
+            type: a.type,
+            status: a.status as any,
+            createdAt: a.date
+          })));
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
   }, [navigate]);
 
-  const handleCreateAppointment = (e: React.FormEvent) => {
+  const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const athlete = records.find(r => r.id === Number(newAppointment.athleteId));
+    const athlete = records.find(r => String(r.id) === String(newAppointment.athleteId));
     if (!athlete) return;
 
-    const newAppointments: Appointment[] = [];
     const iterations = newAppointment.isWeekly ? newAppointment.weeksCount : 1;
     const daysToSchedule = newAppointment.isWeekly ? newAppointment.selectedDays : [new Date(newAppointment.date + 'T12:00:00').getDay().toString()];
 
-    daysToSchedule.forEach(dayStr => {
-      const day = parseInt(dayStr);
-      const baseDate = new Date(newAppointment.date + 'T00:00:00');
-      
-      // Adjust baseDate to the first occurrence of the selected day
-      if (newAppointment.isWeekly) {
-        const currentDay = baseDate.getDay();
-        let diff = day - currentDay;
-        if (diff < 0) diff += 7;
-        baseDate.setDate(baseDate.getDate() + diff);
-      }
-
-      for (let i = 0; i < iterations; i++) {
-        const currentDate = new Date(baseDate);
-        currentDate.setDate(baseDate.getDate() + (i * 7));
+    try {
+      for (const dayStr of daysToSchedule) {
+        const day = parseInt(dayStr);
+        const baseDate = new Date(newAppointment.date + 'T00:00:00');
         
-        const appointment: Appointment = {
-          id: Math.random().toString(36).substr(2, 9),
-          athleteId: athlete.id,
-          athleteName: athlete.user,
-          date: currentDate.toISOString().split('T')[0],
-          time: newAppointment.time,
-          type: newAppointment.type,
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        };
-        newAppointments.push(appointment);
+        if (newAppointment.isWeekly) {
+          const currentDay = baseDate.getDay();
+          let diff = day - currentDay;
+          if (diff < 0) diff += 7;
+          baseDate.setDate(baseDate.getDate() + diff);
+        }
+
+        for (let i = 0; i < iterations; i++) {
+          const currentDate = new Date(baseDate);
+          currentDate.setDate(baseDate.getDate() + (i * 7));
+          
+          await supabaseService.addAppointment({
+            athlete_id: String(athlete.id),
+            date: currentDate.toISOString().split('T')[0],
+            time: newAppointment.time,
+            type: newAppointment.type,
+            status: 'pending'
+          });
+        }
       }
-    });
-
-    const updated = [...newAppointments, ...appointments];
-    setAppointments(updated);
-    localStorage.setItem('els_appointments', JSON.stringify(updated));
-    setIsAppointmentModalOpen(false);
-    setNewAppointment({ 
-      athleteId: 0, 
-      date: new Date().toLocaleDateString('sv-SE'), 
-      time: '', 
-      type: 'Avaliação Física',
-      isWeekly: false,
-      weeksCount: 4,
-      selectedDays: [new Date().getDay().toString()]
-    });
+      
+      // Reload appointments
+      const apps = await supabaseService.getAppointments();
+      setAppointments(apps.map(a => ({
+        id: a.id || Math.random().toString(),
+        athleteId: a.athlete_id,
+        athleteName: a.profiles?.full_name || 'Desconhecido',
+        date: a.date,
+        time: a.time,
+        type: a.type,
+        status: a.status as any,
+        createdAt: a.date
+      })));
+      
+      setIsAppointmentModalOpen(false);
+      setNewAppointment({ 
+        athleteId: '', 
+        date: new Date().toLocaleDateString('sv-SE'), 
+        time: '', 
+        type: 'Avaliação Física',
+        isWeekly: false,
+        weeksCount: 4,
+        selectedDays: [new Date().getDay().toString()]
+      });
+    } catch (error) {
+      console.error('Error creating appointments:', error);
+      alert('Erro ao criar agendamentos.');
+    }
   };
 
-  const deleteAppointment = (id: string) => {
-    const updated = appointments.filter(a => a.id !== id);
-    setAppointments(updated);
-    localStorage.setItem('els_appointments', JSON.stringify(updated));
+  const deleteAppointment = async (id: string) => {
+    try {
+      await supabase.from('appointments').delete().eq('id', id);
+      setAppointments(appointments.filter(a => a.id !== id));
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+    }
   };
 
-  const confirmAppointment = (id: string) => {
-    const updated = appointments.map(a => a.id === id ? { ...a, status: 'confirmed' as const } : a);
-    setAppointments(updated);
-    localStorage.setItem('els_appointments', JSON.stringify(updated));
+  const confirmAppointment = async (id: string) => {
+    try {
+      await supabaseService.updateAppointmentStatus(id, 'confirmed');
+      setAppointments(appointments.map(a => a.id === id ? { ...a, status: 'confirmed' } : a));
+    } catch (error) {
+      console.error('Error confirming appointment:', error);
+    }
   };
 
   const sendAppointmentWhatsApp = (app: Appointment) => {
@@ -190,15 +211,21 @@ export default function AdminDashboard() {
     window.open(`https://wa.me/${athlete.phone}?text=${text}`, '_blank');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
     navigate('/');
   };
 
-  const updateStatus = (id: number, newStatus: string) => {
-    const updated = records.map(r => r.id === id ? { ...r, status: newStatus } : r);
-    setRecords(updated);
-    localStorage.setItem('els_records', JSON.stringify(updated));
+  const updateStatus = async (id: string | number, newStatus: string) => {
+    try {
+      const updated = records.map(r => r.id === id ? { ...r, status: newStatus } : r);
+      setRecords(updated);
+      // In a full implementation, we'd update the specific monitoring record in Supabase
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
   };
 
   const openWhatsApp = (phone: string, name: string) => {
@@ -208,29 +235,8 @@ export default function AdminDashboard() {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    const newId = records.length > 0 ? Math.max(...records.map(r => r.id)) + 1 : 1;
-    const newRecord: Record = {
-      id: newId,
-      date: new Date().toISOString(),
-      user: newAthlete.name,
-      phone: newAthlete.phone,
-      email: newAthlete.email,
-      dob: newAthlete.dob,
-      city: newAthlete.city,
-      registrationDate: new Date().toISOString(),
-      targetTraining: newAthlete.targetTraining,
-      position1: newAthlete.position1,
-      position2: newAthlete.position2,
-      pain: 0,
-      fatigue: 0,
-      hydration: "1",
-      status: "Pendente"
-    };
-    const updated = [newRecord, ...records];
-    setRecords(updated);
-    localStorage.setItem('els_records', JSON.stringify(updated));
+    alert('Para criar um novo atleta, ele deve se cadastrar na tela de login, ou você pode usar o painel do Supabase (Authentication > Users).');
     setIsModalOpen(false);
-    setNewAthlete({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
   };
 
   const filteredRecords = records.filter(r => 

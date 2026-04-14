@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/UserDashboard';
 import PatientProfile from './pages/PatientProfile';
+import SetPassword from './pages/SetPassword';
 import { ThemeProvider } from './components/ThemeProvider';
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/patient/:id" element={<PatientProfile />} />
           <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/criar-senha" element={<SetPassword />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

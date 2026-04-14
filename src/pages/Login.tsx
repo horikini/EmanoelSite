@@ -1,76 +1,50 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     setError('');
 
-    if (username === 'Admin' && password === 'Admin') {
-      localStorage.setItem('userRole', 'admin');
-      navigate('/admin');
-    } else if (username === 'usuario' && password === 'usuario') {
-      // Initialize mock data if not exists to ensure João Atleta profile works
-      const saved = localStorage.getItem('els_records');
-      if (!saved) {
-        const mockRecords = [
-          {
-            id: 1,
-            date: new Date().toISOString(),
-            user: 'João Atleta',
-            phone: '5511999999999',
-            email: 'joao.atleta@email.com',
-            dob: '2002-05-15',
-            city: 'São Paulo',
-            registrationDate: '2023-01-10T10:00:00Z',
-            targetTraining: 'Futebol Profissional',
-            position1: 'Atacante',
-            position2: 'Ponta Direita',
-            pain: 2,
-            fatigue: 3,
-            hydration: "2",
-            status: "Bom"
-          }
-        ];
-        localStorage.setItem('els_records', JSON.stringify(mockRecords));
-      }
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      const savedApps = localStorage.getItem('els_appointments');
-      if (!savedApps) {
-        const mockApps = [
-          {
-            id: 'app-1',
-            athleteId: 1,
-            athleteName: 'João Atleta',
-            date: new Date().toISOString().split('T')[0],
-            time: '14:00',
-            type: 'Avaliação Física',
-            status: 'pending',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 'app-2',
-            athleteId: 1,
-            athleteName: 'João Atleta',
-            date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            time: '09:00',
-            type: 'Treino Técnico',
-            status: 'pending',
-            createdAt: new Date().toISOString()
-          }
-        ];
-        localStorage.setItem('els_appointments', JSON.stringify(mockApps));
-      }
+      if (authError) throw authError;
 
-      localStorage.setItem('userRole', 'user');
-      navigate('/dashboard');
-    } else {
-      setError('Usuário ou senha inválidos.');
+      if (data.user) {
+        // Fetch user role from profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        localStorage.setItem('userRole', profile.role);
+        localStorage.setItem('userId', data.user.id);
+
+        if (profile.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -93,10 +67,10 @@ export default function Login() {
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div>
             <input
-              type="text"
-              placeholder="Usuário"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              placeholder="E-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none transition"
               required
             />
@@ -120,9 +94,10 @@ export default function Login() {
             </button>
             <button
               type="submit"
-              className="bg-[#0b57d0] hover:bg-[#0842a0] dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-2 rounded-full font-medium transition"
+              disabled={loading}
+              className="bg-[#0b57d0] hover:bg-[#0842a0] dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-2 rounded-full font-medium transition disabled:opacity-50"
             >
-              Avançar
+              {loading ? 'Entrando...' : 'Avançar'}
             </button>
           </div>
         </form>
