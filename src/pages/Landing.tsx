@@ -518,7 +518,7 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: "Manoel Lima",
+                name: "Emanoel Lima",
                 role: "Professor & Coaching",
                 desc: "Atuação pelo Santos, Tatuaté e Rio Claro",
                 img: "/Manuel.jpg"
