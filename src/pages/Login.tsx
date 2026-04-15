@@ -76,6 +76,13 @@ export default function Login() {
       localStorage.setItem('userRole', profile.role);
       localStorage.setItem('userId', userId);
 
+      // Check if user needs to change password (created by Admin)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.precisa_mudar_senha) {
+        navigate('/criar-senha');
+        return;
+      }
+
       if (profile.role === 'admin') {
         navigate('/admin');
       } else {

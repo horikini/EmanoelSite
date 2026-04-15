@@ -41,9 +41,12 @@ export default function SetPassword() {
 
     setLoading(true);
     try {
-      // Atualiza a senha do usuário autenticado (sessão temporária do convite)
+      // Atualiza a senha do usuário autenticado e remove a flag precisa_mudar_senha
       const { error } = await supabase.auth.updateUser({
-        password: password
+        password: password,
+        data: {
+          precisa_mudar_senha: false
+        }
       });
 
       if (error) throw error;

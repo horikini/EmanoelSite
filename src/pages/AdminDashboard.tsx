@@ -238,10 +238,47 @@ export default function AdminDashboard() {
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Para criar um novo atleta, ele deve se cadastrar na tela de login, ou você pode usar o painel do Supabase (Authentication > Users).');
-    setIsModalOpen(false);
+    try {
+      if (!newAthlete.name || !newAthlete.email || !newAthlete.phone) {
+        alert('Nome, email e telefone são obrigatórios.');
+        return;
+      }
+
+      // Chama a Serverless Function da Vercel
+      const response = await fetch('/api/criar-atleta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newAthlete.name,
+          email: newAthlete.email,
+          phone: newAthlete.phone,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar atleta');
+      }
+
+      alert('Atleta criado com sucesso! A senha provisória é o telefone (apenas números).');
+      setIsModalOpen(false);
+      setNewAthlete({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
+      
+      // Recarrega a lista
+      const profiles = await supabaseService.getProfiles();
+      if (profiles) {
+        const pending = profiles.filter(p => p.status === 'pending');
+        setPendingAthletes(pending);
+      }
+    } catch (error: any) {
+      console.error('Erro ao adicionar atleta:', error);
+      alert(`Erro: ${error.message}`);
+    }
   };
 
   const handleApproveAthlete = async (id: string) => {
