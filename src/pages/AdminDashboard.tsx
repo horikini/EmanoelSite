@@ -47,9 +47,10 @@ const STATUS_OPTIONS = [
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [records, setRecords] = useState<Record[]>([]);
+  const [allAthletes, setAllAthletes] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'monitoring' | 'scheduling'>('monitoring');
+  const [activeTab, setActiveTab] = useState<'monitoring' | 'scheduling' | 'athletes'>('monitoring');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [newAppointment, setNewAppointment] = useState({ 
@@ -81,6 +82,9 @@ export default function AdminDashboard() {
         ]);
 
         if (profiles && monitoring) {
+          const athletes = profiles.filter(p => p.role === 'athlete');
+          setAllAthletes(athletes);
+          
           const pending = profiles.filter(p => p.status === 'pending');
           setPendingAthletes(pending);
 
@@ -353,9 +357,15 @@ export default function AdminDashboard() {
           >
             Agendamento
           </button>
+          <button 
+            onClick={() => setActiveTab('athletes')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'athletes' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          >
+            Atletas
+          </button>
         </div>
 
-        {activeTab === 'monitoring' ? (
+        {activeTab === 'monitoring' && (
           <>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <div>
@@ -565,7 +575,9 @@ export default function AdminDashboard() {
               </div>
             </div>
           </>
-        ) : (
+        )}
+
+        {activeTab === 'scheduling' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -650,6 +662,85 @@ export default function AdminDashboard() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'athletes' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Todos os Atletas</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Lista completa de atletas cadastrados</p>
+              </div>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input 
+                  type="text" 
+                  placeholder="Buscar atleta..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-wider">
+                      <th className="px-3 py-2 font-bold">Atleta</th>
+                      <th className="px-3 py-2 font-bold">Email</th>
+                      <th className="px-3 py-2 font-bold">Status</th>
+                      <th className="px-3 py-2 font-bold text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {allAthletes
+                      .filter(a => a.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map((athlete) => (
+                      <tr key={athlete.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
+                        <td className="px-3 py-2">
+                          <p className="font-bold text-xs text-slate-800 dark:text-white">{athlete.full_name}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">{athlete.phone || 'Sem telefone'}</p>
+                        </td>
+                        <td className="px-3 py-2 text-[11px] text-slate-600 dark:text-slate-400">
+                          {athlete.email}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            athlete.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            athlete.status === 'blocked' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          }`}>
+                            {athlete.status === 'active' ? 'Ativo' : athlete.status === 'blocked' ? 'Bloqueado' : 'Pendente'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Link 
+                              to={`/patient/${athlete.id}`}
+                              className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                              title="Perfil do Atleta"
+                            >
+                              <User size={14} />
+                            </Link>
+                            {athlete.phone && (
+                              <button 
+                                onClick={() => openWhatsApp(athlete.phone, athlete.full_name)}
+                                className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                              >
+                                <MessageCircle size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
