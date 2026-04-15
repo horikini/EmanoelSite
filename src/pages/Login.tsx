@@ -31,34 +31,46 @@ export default function Login() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleUserRedirect = async (userId: string, retries = 3) => {
+  const handleUserRedirect = async (userId: string) => {
     try {
       setLoading(true);
-      let profile = null;
-      let lastError = null;
+      
+      // Try to fetch the profile
+      let { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-      // Retry mechanism for newly created users (database trigger delay)
-      for (let i = 0; i < retries; i++) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (!error && data) {
-          profile = data;
-          break;
-        }
+      // If profile doesn't exist (PGRST116 means no rows returned), create it manually
+      // This acts as a fallback in case the database trigger fails or is delayed
+      if (error && error.code === 'PGRST116') {
+        const { data: { user } } = await supabase.auth.getUser();
         
-        lastError = error;
-        // Wait 1 second before retrying
-        if (i < retries - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        if (user) {
+          const newProfile = {
+            id: userId,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || 'Atleta',
+            email: user.email,
+            role: 'athlete',
+            status: 'pending'
+          };
+          
+          const { data: createdProfile, error: insertError } = await supabase
+            .from('profiles')
+            .insert([newProfile])
+            .select()
+            .single();
+            
+          if (insertError) throw insertError;
+          profile = createdProfile;
         }
+      } else if (error) {
+        throw error;
       }
 
       if (!profile) {
-        throw lastError || new Error('Perfil não encontrado');
+        throw new Error('Não foi possível carregar ou criar o perfil');
       }
 
       localStorage.setItem('userRole', profile.role);
@@ -78,7 +90,8 @@ export default function Login() {
       }
     } catch (err: any) {
       console.error('Error fetching profile:', err);
-      setError('Erro ao carregar perfil. Por favor, atualize a página.');
+      // Display the exact error message to help debugging
+      setError(`Erro: ${err.message || JSON.stringify(err)}`);
       setLoading(false);
     }
   };
