@@ -156,7 +156,7 @@ const TEST_INFO = {
   velocidade20m: "Tiros de 20 e 30 metros: Medem a velocidade máxima atingida em distâncias curtas.",
   yoyo: "Yo-Yo Intermittent Recovery Test: Considerado o 'padrão-ouro'. Corridas de 20m ida e volta com bipes progressivos e 10s de recuperação.",
   rast: "RAST: 6 tiros de 35 metros em velocidade máxima com 10s de descanso. Calcula potência anaeróbia e índice de fadiga.",
-  illinois: "Aceleração e Velocidade de mudança: Circuito com cones envolvendo corridas retas e em zigue-zague.",
+  illinois: "Aceleração e Mudança: Circuito com cones envolvendo corridas retas e em zigue-zague.",
   arrowhead: "Arrowhead Agility Test: Simula corridas rápidas em diagonal com cortes bruscos.",
   cmj: "Saltos Verticais (CMJ e SJ): Medem a potência de membros inferiores, essencial para disputas aéreas.",
   dinamometria: "Dinamometria Isocinética: Mede o desequilíbrio de força entre quadríceps e isquiotibiais.",
@@ -252,6 +252,86 @@ export default function PatientProfile() {
   const isAdmin = localStorage.getItem('userRole') === 'admin';
   const isUser = localStorage.getItem('userRole') === 'athlete' || localStorage.getItem('userRole') === 'user';
   const [loading, setLoading] = useState(true);
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  const [evaluationType, setEvaluationType] = useState<'physical' | 'specific' | null>(null);
+  const [evalForm, setEvalForm] = useState<any>({
+    date: new Date().toISOString().split('T')[0],
+    weight: '',
+    height: '',
+    measurements: {
+      neck: '', chest: '', biceps: '', forearm: '',
+      waist: '', abdomen: '', hip: '',
+      proximalThigh: '', medialThigh: '', distalThigh: '', calf: ''
+    },
+    skinfolds: {
+      triceps: '', subscapular: '', chest: '', axillary: '',
+      suprailiac: '', abdominal: '', thigh: '',
+      calf: '', biceps: '', iliacCrest: ''
+    },
+    specificTests: {
+      velocidade10m: '', velocidade20m: '', yoyo: '', rast: '',
+      illinois: '', arrowhead: '', cmj: '', dinamometria: '',
+      sprintBola: '', slalom: '', lspt: '', wallPass: '',
+      finalizacao: '', ssg: ''
+    }
+  });
+
+  const handleOpenEvalModal = () => {
+    setEvalForm({
+      ...evalForm,
+      height: patient?.height || selectedEval?.height || '',
+      date: new Date().toISOString().split('T')[0]
+    });
+    setIsEvaluationModalOpen(true);
+    setEvaluationType(null);
+  };
+
+  const MEASUREMENT_LABELS: { [key: string]: string } = {
+    neck: 'Pescoço', chest: 'Peito', biceps: 'Bíceps', forearm: 'Antebraço',
+    waist: 'Cintura', abdomen: 'Abdômen', hip: 'Quadril',
+    proximalThigh: 'Coxa Prox.', medialThigh: 'Coxa Med.', distalThigh: 'Coxa Dist.', calf: 'Panturrilha'
+  };
+
+  const SKINFOLD_LABELS: { [key: string]: string } = {
+    triceps: 'Tríceps', subscapular: 'Subescapular', chest: 'Peitoral', axillary: 'Axilar Méd.',
+    suprailiac: 'Suprailíaca', abdominal: 'Abdominal', thigh: 'Coxa',
+    calf: 'Panturrilha', biceps: 'Bíceps', iliacCrest: 'Crista Ilíaca'
+  };
+
+  const TEST_LABELS: { [key: string]: string } = {
+    velocidade10m: 'Veloc. 10m', velocidade20m: 'Veloc. 20m', yoyo: 'Yo-Yo Test', rast: 'RAST',
+    illinois: 'Aceleração e Mudança', arrowhead: 'Arrowhead', cmj: 'Salto CMJ', dinamometria: 'Dinamom.',
+    sprintBola: 'Sprint Bola', slalom: 'Agilidade com bola (s)', lspt: 'LSPT', wallPass: 'Precisão de passe (rep)',
+    finalizacao: 'Finalização', ssg: 'SSG'
+  };
+
+  const handleSaveEvaluation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patient) return;
+
+    try {
+      const dataToSave = {
+        ...evalForm,
+        weight: parseFloat(evalForm.weight),
+        height: parseFloat(evalForm.height),
+        measurements: Object.fromEntries(Object.entries(evalForm.measurements).map(([k, v]) => [k, parseFloat(v as string) || 0])),
+        skinfolds: Object.fromEntries(Object.entries(evalForm.skinfolds).map(([k, v]) => [k, parseFloat(v as string) || 0])),
+        specificTests: Object.fromEntries(Object.entries(evalForm.specificTests).map(([k, v]) => [k, parseFloat(v as string) || 0])),
+        isLiberated: false
+      };
+
+      await supabaseService.addEvaluation(String(patient.id), dataToSave);
+      
+      setIsEvaluationModalOpen(false);
+      setEvaluationType(null);
+      alert('Avaliação salva com sucesso!');
+      // Reload page to show new evaluation
+      window.location.reload();
+    } catch (error) {
+      console.error('Error saving evaluation:', error);
+      alert('Erro ao salvar avaliação.');
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -600,7 +680,7 @@ export default function PatientProfile() {
             
             {isAdmin && (
               <button 
-                onClick={() => navigate(`/admin?action=new-eval&athleteId=${patient.id}`)}
+                onClick={handleOpenEvalModal}
                 className="w-full mt-6 bg-orange-500 text-white py-3 rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-orange-600 transition shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
               >
                 <Plus size={18} />
@@ -1089,6 +1169,187 @@ export default function PatientProfile() {
         </AccordionSection>
 
       </main>
+
+      {/* Evaluation Modal */}
+      <AnimatePresence>
+        {isEvaluationModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-4xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 my-8"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Nova Avaliação</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Atleta: {patient?.name}</p>
+                </div>
+                <button onClick={() => setIsEvaluationModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition">
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+
+              {!evaluationType ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-8">
+                  <button 
+                    onClick={() => setEvaluationType('physical')}
+                    className="flex flex-col items-center gap-4 p-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent hover:border-orange-500 transition group"
+                  >
+                    <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition">
+                      <Ruler size={32} />
+                    </div>
+                    <div className="text-center">
+                      <h4 className="font-bold text-slate-800 dark:text-white">Avaliação Física</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Antropometria e Pregas Cutâneas</p>
+                    </div>
+                  </button>
+                  <button 
+                    onClick={() => setEvaluationType('specific')}
+                    className="flex flex-col items-center gap-4 p-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent hover:border-blue-500 transition group"
+                  >
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition">
+                      <Activity size={32} />
+                    </div>
+                    <div className="text-center">
+                      <h4 className="font-bold text-slate-800 dark:text-white">Avaliação Específica</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Testes de Campo e Performance</p>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSaveEvaluation} className="space-y-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <button 
+                      type="button" 
+                      onClick={() => setEvaluationType(null)}
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition"
+                    >
+                      <ArrowLeft size={20} className="text-slate-400" />
+                    </button>
+                    <h4 className="font-bold text-slate-700 dark:text-slate-200">
+                      {evaluationType === 'physical' ? 'Dados da Avaliação Física' : 'Dados da Avaliação Específica'}
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label>
+                      <input 
+                        type="date" 
+                        value={evalForm.date}
+                        onChange={e => setEvalForm({...evalForm, date: e.target.value})}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    {evaluationType === 'physical' && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Peso (kg)</label>
+                          <input 
+                            type="number" step="0.1"
+                            value={evalForm.weight}
+                            onChange={e => setEvalForm({...evalForm, weight: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Altura (cm)</label>
+                          <input 
+                            type="number"
+                            value={evalForm.height}
+                            onChange={e => setEvalForm({...evalForm, height: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {evaluationType === 'physical' ? (
+                    <div className="space-y-4">
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-800 dark:text-white mb-2 border-b border-slate-100 dark:border-slate-800 pb-1 uppercase tracking-wider">Antropometria (cm)</h5>
+                        <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                          {Object.keys(evalForm.measurements).map(key => (
+                            <div key={key}>
+                              <label className="block text-[9px] text-slate-400 font-bold uppercase mb-0.5 h-5 flex items-end">{MEASUREMENT_LABELS[key] || key}</label>
+                              <input 
+                                type="number" step="0.1"
+                                value={evalForm.measurements[key]}
+                                onChange={e => setEvalForm({
+                                  ...evalForm, 
+                                  measurements: { ...evalForm.measurements, [key]: e.target.value }
+                                })}
+                                className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-orange-500"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-800 dark:text-white mb-2 border-b border-slate-100 dark:border-slate-800 pb-1 uppercase tracking-wider">Pregas Cutâneas (mm)</h5>
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                          {Object.keys(evalForm.skinfolds).map(key => (
+                            <div key={key}>
+                              <label className="block text-[9px] text-slate-400 font-bold uppercase mb-0.5 h-5 flex items-end">{SKINFOLD_LABELS[key] || key}</label>
+                              <input 
+                                type="number" step="0.1"
+                                value={evalForm.skinfolds[key]}
+                                onChange={e => setEvalForm({
+                                  ...evalForm, 
+                                  skinfolds: { ...evalForm.skinfolds, [key]: e.target.value }
+                                })}
+                                className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-orange-500"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <h5 className="text-xs font-bold text-slate-800 dark:text-white mb-2 border-b border-slate-100 dark:border-slate-800 pb-1 uppercase tracking-wider">Testes de Performance</h5>
+                      <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                        {Object.keys(evalForm.specificTests).map(key => (
+                          <div key={key}>
+                            <label className="block text-[9px] text-slate-400 font-bold uppercase mb-0.5 h-7 flex items-end leading-tight">{TEST_LABELS[key] || key}</label>
+                            <input 
+                              type="number" step="0.01"
+                              value={evalForm.specificTests[key]}
+                              onChange={e => setEvalForm({
+                                ...evalForm, 
+                                specificTests: { ...evalForm.specificTests, [key]: e.target.value }
+                              })}
+                              className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4">
+                    <button 
+                      type="button"
+                      onClick={() => setIsEvaluationModalOpen(false)}
+                      className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-1 px-4 py-3 bg-orange-500 text-white rounded-2xl font-bold text-sm hover:bg-orange-600 transition shadow-lg shadow-orange-500/20"
+                    >
+                      Salvar Avaliação
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

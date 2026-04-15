@@ -282,11 +282,11 @@ export default function UserDashboard() {
 
         <div className="mb-6 flex justify-between items-end">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Olá, João!</h2>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Olá, {profile?.full_name?.split(' ')[0] || 'Atleta'}!</h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Acompanhe sua evolução e envie seu feedback.</p>
           </div>
           <button 
-            onClick={() => navigate('/patient/1')}
+            onClick={() => navigate(`/patient/${profile?.id}`)}
             className="flex items-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-bold hover:bg-orange-200 transition"
           >
             <Activity size={14} />

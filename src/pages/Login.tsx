@@ -20,19 +20,23 @@ export default function Login() {
       setRememberMe(true);
     }
 
-    // Check if user is already logged in (e.g., returning from OAuth)
+    // Check if user is already logged in
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        // Se o usuário já está logado, mas veio para a página de login,
+        // talvez ele queira trocar de conta. 
+        // Por enquanto, vamos manter o redirecionamento automático,
+        // mas garantir que o role e id no localStorage estejam sincronizados.
         handleUserRedirect(session.user.id);
       }
     };
     
     checkSession();
 
-    // Listen for auth state changes (like OAuth redirect completion)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
         handleUserRedirect(session.user.id);
       }
     });

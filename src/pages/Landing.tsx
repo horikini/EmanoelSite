@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
-import { ChevronRight, Zap, Trophy, Dumbbell, Target, HeartPulse, LineChart, Utensils, ShieldCheck, Lock, Users } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronRight, Zap, Trophy, Dumbbell, Target, HeartPulse, LineChart, Utensils, ShieldCheck, Lock, Users, LogOut, LayoutDashboard } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const NeonButton = ({ children, to, className = "" }: { children: React.ReactNode; to?: string; className?: string }) => {
   const content = (
@@ -32,6 +33,28 @@ const NeonButton = ({ children, to, className = "" }: { children: React.ReactNod
 };
 
 export default function Landing() {
+  const navigate = useNavigate();
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    setSession(null);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden relative">
       {/* Global Speed Lines Effect */}
@@ -59,20 +82,12 @@ export default function Landing() {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-50 p-4 flex flex-col items-center gap-6 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent pb-12">
         <div className="flex flex-col items-center gap-4 mt-2">
-          <div className="flex gap-3">
+          <div className="flex items-center justify-center">
             <Link
-              to="/login"
-              className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/50 text-orange-400 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-orange-500 hover:text-white transition-all shadow-lg shadow-orange-500/10"
+              to={session ? (localStorage.getItem('userRole') === 'admin' ? "/admin" : "/dashboard") : "/login"}
+              className="bg-orange-500 border border-orange-400 text-white px-8 py-2.5 rounded-full text-sm font-black tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/30 active:scale-95 uppercase italic"
             >
-              <Lock size={12} />
-              ATLETA
-            </Link>
-            <Link
-              to="/login"
-              className="flex items-center gap-2 bg-slate-800/50 border border-slate-700 text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-slate-700 transition-all"
-            >
-              <Lock size={12} />
-              EQUIPE
+              ATLETA ELS POWER
             </Link>
           </div>
         </div>
