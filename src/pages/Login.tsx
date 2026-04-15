@@ -31,15 +31,35 @@ export default function Login() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleUserRedirect = async (userId: string) => {
+  const handleUserRedirect = async (userId: string, retries = 3) => {
     try {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      setLoading(true);
+      let profile = null;
+      let lastError = null;
 
-      if (profileError) throw profileError;
+      // Retry mechanism for newly created users (database trigger delay)
+      for (let i = 0; i < retries; i++) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (!error && data) {
+          profile = data;
+          break;
+        }
+        
+        lastError = error;
+        // Wait 1 second before retrying
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      if (!profile) {
+        throw lastError || new Error('Perfil não encontrado');
+      }
 
       localStorage.setItem('userRole', profile.role);
       localStorage.setItem('userId', userId);
@@ -56,8 +76,10 @@ export default function Login() {
           navigate('/dashboard');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching profile:', err);
+      setError('Erro ao carregar perfil. Por favor, atualize a página.');
+      setLoading(false);
     }
   };
 
