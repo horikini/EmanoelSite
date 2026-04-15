@@ -46,6 +46,16 @@ export default function UserDashboard() {
         const userProfile = await supabaseService.getProfile(userId);
         setProfile(userProfile);
 
+        if (!userProfile.phone) {
+          navigate('/complete-profile');
+          return;
+        }
+
+        if (userProfile.status === 'pending') {
+          navigate('/pending-approval');
+          return;
+        }
+
         // Fetch appointments
         const apps = await supabaseService.getAppointments(userId);
         setAppointments(apps);

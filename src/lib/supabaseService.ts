@@ -13,6 +13,7 @@ export interface Profile {
   position2?: string;
   photo?: string;
   role: 'admin' | 'athlete';
+  status?: 'pending' | 'active' | 'blocked';
 }
 
 export interface MonitoringRecord {

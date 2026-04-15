@@ -13,7 +13,8 @@ CREATE TABLE profiles (
   position1 TEXT,
   position2 TEXT,
   photo TEXT,
-  role TEXT DEFAULT 'athlete' CHECK (role IN ('admin', 'athlete'))
+  role TEXT DEFAULT 'athlete' CHECK (role IN ('admin', 'athlete')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'blocked'))
 );
 
 -- 2. Monitoring Table

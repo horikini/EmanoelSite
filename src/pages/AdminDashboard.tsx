@@ -62,6 +62,8 @@ export default function AdminDashboard() {
     selectedDays: [new Date().getDay().toString()]
   });
   const [newAthlete, setNewAthlete] = useState({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
+  const [pendingAthletes, setPendingAthletes] = useState<any[]>([]);
+  const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -79,6 +81,9 @@ export default function AdminDashboard() {
         ]);
 
         if (profiles && monitoring) {
+          const pending = profiles.filter(p => p.status === 'pending');
+          setPendingAthletes(pending);
+
           const mappedRecords = monitoring.map(m => {
             const profile = profiles.find(p => p.id === m.athlete_id);
             return {
@@ -239,6 +244,17 @@ export default function AdminDashboard() {
     setIsModalOpen(false);
   };
 
+  const handleApproveAthlete = async (id: string) => {
+    try {
+      await supabaseService.updateProfile(id, { status: 'active' });
+      setPendingAthletes(pendingAthletes.filter(a => a.id !== id));
+      alert('Atleta aprovado com sucesso!');
+    } catch (error) {
+      console.error('Error approving athlete:', error);
+      alert('Erro ao aprovar atleta.');
+    }
+  };
+
   const filteredRecords = records.filter(r => 
     r.user.toLowerCase().includes(searchTerm.toLowerCase())
   ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -266,6 +282,17 @@ export default function AdminDashboard() {
           <h1 className="font-bold text-lg hidden xs:block">Admin CRM</h1>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsPendingModalOpen(true)}
+            className="relative p-2 text-slate-300 hover:text-white transition-colors"
+          >
+            <Bell size={20} />
+            {pendingAthletes.length > 0 && (
+              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
+                {pendingAthletes.length}
+              </span>
+            )}
+          </button>
           <ThemeToggle />
           <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg text-sm hover:bg-slate-700 transition">
             <LogOut size={16} />
@@ -736,6 +763,49 @@ export default function AdminDashboard() {
                 Agendar
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Aprovação */}
+      {isPendingModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl p-6 shadow-xl relative border border-slate-200 dark:border-slate-800 my-8">
+            <button 
+              onClick={() => setIsPendingModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-full p-1"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+              <Bell className="text-orange-500" size={24} />
+              Atletas Aguardando Aprovação
+            </h3>
+            
+            {pendingAthletes.length === 0 ? (
+              <p className="text-slate-500 dark:text-slate-400 text-center py-8">Nenhum atleta aguardando aprovação no momento.</p>
+            ) : (
+              <div className="space-y-4">
+                {pendingAthletes.map(athlete => (
+                  <div key={athlete.id} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white">{athlete.full_name}</h4>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{athlete.email} • {athlete.phone}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {athlete.city} • {athlete.target_training} • {athlete.position1}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => handleApproveAthlete(athlete.id)}
+                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap flex items-center gap-2"
+                    >
+                      <CheckCircle size={16} />
+                      Aprovar Acesso
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
