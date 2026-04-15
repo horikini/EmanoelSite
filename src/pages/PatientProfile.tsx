@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Phone, Activity, Ruler, Timer, Calendar, HelpCircle, Lock, Unlock, Plus, BarChart2, FileText, Target, ChevronDown, ChevronUp, MoreHorizontal, Camera, Edit2, Save, X } from 'lucide-react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, User, Phone, Activity, Ruler, Timer, Calendar, HelpCircle, Lock, Unlock, Plus, BarChart2, FileText, Target, ChevronDown, ChevronUp, MoreHorizontal, Camera, Edit2, Save, X, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { supabase } from '../lib/supabase';
 import { supabaseService, Profile } from '../lib/supabaseService';
@@ -180,7 +181,12 @@ const METRIC_OPTIONS = [
 
 function AccordionSection({ title, icon: Icon, isOpen, onToggle, children, rightAction }: any) {
   return (
-    <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+    <motion.section 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden"
+    >
       <div className="p-4 flex items-center justify-between cursor-pointer select-none" onClick={onToggle}>
         <div className="flex items-center gap-2">
           {Icon && <Icon size={18} className="text-orange-500" />}
@@ -191,14 +197,27 @@ function AccordionSection({ title, icon: Icon, isOpen, onToggle, children, right
           {isOpen ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
       </div>
-      {isOpen && <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800">{children}</div>}
-    </section>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800 overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.section>
   );
 }
 
 export default function PatientProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [selectedEvalId, setSelectedEvalId] = useState<string>('');
   
@@ -210,10 +229,10 @@ export default function PatientProfile() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     perfil: true,
     acompanhamento: true,
-    historico: true,
-    avaliacao: true,
-    especifica: true,
-    agendamentos: true,
+    historico: false,
+    avaliacao: false,
+    especifica: false,
+    agendamentos: false,
     tabela: false
   });
   const [bfEquation, setBfEquation] = useState<'pollock3' | 'pollock7' | 'guedes'>('pollock7');
@@ -315,6 +334,13 @@ export default function PatientProfile() {
     loadData();
   }, [id]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('action') === 'eval') {
+      setOpenSections(prev => ({ ...prev, avaliacao: true, especifica: true }));
+    }
+  }, [location.search]);
+
   if (loading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500">Carregando...</div>;
   if (!patient) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500">Atleta não encontrado.</div>;
 
@@ -324,12 +350,14 @@ export default function PatientProfile() {
 
   const selectedEval = visibleEvaluations.find(e => e.id === selectedEvalId) || visibleEvaluations[visibleEvaluations.length - 1];
 
-  const toggleLiberation = async (evalId: string) => {
+  const toggleLiberation = async (evalId: string, type: 'physical' | 'specific') => {
     if (!isAdmin) return;
     try {
       const ev = patient.evaluations.find(e => e.id === evalId);
       if (!ev) return;
       
+      // In a real app, we'd have separate flags for physical and specific liberation
+      // For now, we'll simulate it by updating the isLiberated flag
       if (!evalId.startsWith('eval-')) {
         await supabaseService.updateEvaluation(evalId, { is_liberated: !ev.isLiberated });
       }
@@ -448,7 +476,7 @@ export default function PatientProfile() {
 
         {/* 1. PERFIL */}
         <AccordionSection 
-          title="1. Perfil" 
+          title="Perfil" 
           icon={User} 
           isOpen={openSections.perfil} 
           onToggle={() => toggleSection('perfil')}
@@ -614,7 +642,7 @@ export default function PatientProfile() {
 
         {/* 2. EVOLUÇÃO */}
         <AccordionSection 
-          title="2. Acompanhamento Gráfico" 
+          title="Acompanhamento" 
           icon={BarChart2} 
           isOpen={openSections.acompanhamento} 
           onToggle={() => toggleSection('acompanhamento')}
@@ -749,7 +777,7 @@ export default function PatientProfile() {
 
         {/* 3. BOX DE DATAS (HISTÓRICO) */}
         <AccordionSection 
-          title="3. Histórico de Avaliações" 
+          title="Histórico" 
           icon={Calendar} 
           isOpen={openSections.historico} 
           onToggle={() => toggleSection('historico')}
@@ -766,28 +794,13 @@ export default function PatientProfile() {
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    <span className="opacity-50 text-[8px]">AVAL {idx + 1}</span>
-                    <span>{new Date(e.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                    <span>{new Date(e.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}</span>
                   </button>
                 ))}
-                <button className="px-2 py-3 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 flex items-center justify-center">
-                  ...
-                </button>
               </div>
 
               {isAdmin && selectedEval && (
-                <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-100 dark:border-slate-800 pt-3 md:pt-0">
-                  <button 
-                    onClick={() => toggleLiberation(selectedEval.id)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      selectedEval.isLiberated 
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                    }`}
-                  >
-                    {selectedEval.isLiberated ? <Unlock size={14} /> : <Lock size={14} />}
-                    {selectedEval.isLiberated ? 'Liberado p/ Atleta' : 'Oculto p/ Atleta'}
-                  </button>
+                <div className="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 border-slate-100 dark:border-slate-800 pt-3 md:pt-0 mt-4">
                   <button className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-orange-600 transition-all">
                     <Plus size={14} />
                     Nova Avaliação
@@ -803,14 +816,14 @@ export default function PatientProfile() {
               <>
                 {/* 4. AVALIAÇÃO FÍSICA */}
                 <AccordionSection 
-                  title="4. Avaliação Física" 
+                  title="Avaliação Física" 
                   icon={Ruler} 
                   isOpen={openSections.avaliacao} 
                   onToggle={() => toggleSection('avaliacao')}
                   rightAction={
                     isAdmin && (
                       <button 
-                        onClick={() => toggleLiberation(selectedEval.id)}
+                        onClick={() => toggleLiberation(selectedEval.id, 'physical')}
                         className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
                           selectedEval.isLiberated 
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
@@ -941,19 +954,6 @@ export default function PatientProfile() {
                         <span>Antropometria</span>
                         <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">Perímetros (cm)</span>
                       </div>
-                      {isAdmin && (
-                        <button 
-                          onClick={() => toggleLiberation(selectedEval.id)}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                            selectedEval.isLiberated 
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                          }`}
-                        >
-                          {selectedEval.isLiberated ? <Unlock size={10} /> : <Lock size={10} />}
-                          {selectedEval.isLiberated ? 'Liberado' : 'Oculto'}
-                        </button>
-                      )}
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                       {[
@@ -980,19 +980,6 @@ export default function PatientProfile() {
                   <section className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 lg:col-span-3">
                     <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-3 border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center justify-between">
                       <span>Pregas Cutâneas (mm)</span>
-                      {isAdmin && (
-                        <button 
-                          onClick={() => toggleLiberation(selectedEval.id)}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                            selectedEval.isLiberated 
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                          }`}
-                        >
-                          {selectedEval.isLiberated ? <Unlock size={10} /> : <Lock size={10} />}
-                          {selectedEval.isLiberated ? 'Liberado' : 'Oculto'}
-                        </button>
-                      )}
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2 mb-4">
                       {[
@@ -1019,14 +1006,14 @@ export default function PatientProfile() {
 
                 {/* 5. AVALIAÇÃO ESPECÍFICA */}
                 <AccordionSection 
-                  title="5. Avaliação Específica" 
+                  title="Avaliação Específica" 
                   icon={Target} 
                   isOpen={openSections.especifica} 
                   onToggle={() => toggleSection('especifica')}
                   rightAction={
                     isAdmin && (
                       <button 
-                        onClick={() => toggleLiberation(selectedEval.id)}
+                        onClick={() => toggleLiberation(selectedEval.id, 'specific')}
                         className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
                           selectedEval.isLiberated 
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
