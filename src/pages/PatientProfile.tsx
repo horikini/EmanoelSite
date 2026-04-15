@@ -156,14 +156,14 @@ const TEST_INFO = {
   velocidade20m: "Tiros de 20 e 30 metros: Medem a velocidade máxima atingida em distâncias curtas.",
   yoyo: "Yo-Yo Intermittent Recovery Test: Considerado o 'padrão-ouro'. Corridas de 20m ida e volta com bipes progressivos e 10s de recuperação.",
   rast: "RAST: 6 tiros de 35 metros em velocidade máxima com 10s de descanso. Calcula potência anaeróbia e índice de fadiga.",
-  illinois: "Teste de Illinois: Circuito com cones envolvendo corridas retas e em zigue-zague.",
+  illinois: "Aceleração e Velocidade de mudança: Circuito com cones envolvendo corridas retas e em zigue-zague.",
   arrowhead: "Arrowhead Agility Test: Simula corridas rápidas em diagonal com cortes bruscos.",
   cmj: "Saltos Verticais (CMJ e SJ): Medem a potência de membros inferiores, essencial para disputas aéreas.",
   dinamometria: "Dinamometria Isocinética: Mede o desequilíbrio de força entre quadríceps e isquiotibiais.",
   sprintBola: "Sprint de 20m ou 30m com bola: Mede o grau de perda de velocidade ao conduzir a bola.",
-  slalom: "Teste de Slalom com bola: Avalia a agilidade técnica através da condução em alta velocidade por cones.",
+  slalom: "Agilidade com bola (s): Avalia a agilidade técnica através da condução em alta velocidade por cones.",
   lspt: "Loughborough Soccer Passing Test (LSPT): Passes contra alvos específicos ditados aleatoriamente.",
-  wallPass: "Wall Pass Test: Maior número de passes e domínios limpos contra uma tabela em tempo predeterminado.",
+  wallPass: "Precisão de passe (rep): Maior número de passes e domínios limpos contra uma tabela em tempo predeterminado.",
   finalizacao: "Circuito de Finalização Anaeróbico: Pique em alta velocidade, recebe passe e finaliza em até dois toques.",
   ssg: "Jogos Reduzidos (SSG): Mini-jogos com GPS para cruzar dados físicos, técnicos e táticos."
 };
@@ -459,15 +459,15 @@ export default function PatientProfile() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-12 transition-colors">
       {/* Header */}
-      <header className="bg-slate-900 dark:bg-slate-900 text-white p-4 sticky top-0 z-20 shadow-md flex items-center gap-4">
+      <header className="bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md text-white p-4 sticky top-0 z-20 shadow-lg border-b border-white/10 flex items-center gap-4">
         <button 
           onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg text-sm hover:bg-slate-700 transition"
+          className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-lg text-sm hover:bg-white/20 transition border border-white/10"
         >
           <ArrowLeft size={16} />
           <span className="hidden sm:inline">Voltar</span>
         </button>
-        <h1 className="font-bold text-lg flex-1 text-center md:text-left">Perfil do Atleta</h1>
+        <h1 className="font-bold text-lg flex-1 text-center md:text-left drop-shadow-md">Perfil do Atleta</h1>
       </header>
 
       <main className="p-3 md:p-6 max-w-7xl mx-auto space-y-4">
@@ -597,6 +597,16 @@ export default function PatientProfile() {
                 )}
               </div>
             </div>
+            
+            {isAdmin && (
+              <button 
+                onClick={() => navigate(`/admin?action=new-eval&athleteId=${patient.id}`)}
+                className="w-full mt-6 bg-orange-500 text-white py-3 rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-orange-600 transition shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Nova Avaliação
+              </button>
+            )}
         </AccordionSection>
 
         {/* AGENDAMENTOS SECTION */}
@@ -605,6 +615,21 @@ export default function PatientProfile() {
           icon={Calendar} 
           isOpen={openSections.agendamentos} 
           onToggle={() => toggleSection('agendamentos')}
+          rightAction={
+            isAdmin && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Navigate to admin with scheduling pre-filled
+                  navigate(`/admin?tab=scheduling&athleteId=${patient.id}`);
+                }}
+                className="flex items-center gap-1 px-2 py-1 bg-orange-500 text-white rounded-lg text-[10px] font-bold hover:bg-orange-600 transition shadow-sm"
+              >
+                <Plus size={12} />
+                Agendamento
+              </button>
+            )
+          }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
             {appointments.length === 0 ? (
@@ -727,86 +752,6 @@ export default function PatientProfile() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-        </AccordionSection>
-
-        {/* TABELA DE HISTÓRICO COMPLETA */}
-        <AccordionSection 
-          title="Tabela de Histórico Completa" 
-          icon={FileText} 
-          isOpen={openSections.tabela} 
-          onToggle={() => toggleSection('tabela')}
-        >
-          <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50">
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10">Data</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Peso</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">% BF</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Vel. 10m</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Vel. 20m</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Yo-Yo</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">RAST</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">CMJ</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">LSPT</th>
-                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">SSG</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleEvaluations.map((e, idx) => (
-                  <tr key={e.id} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/50 dark:bg-slate-800/20'} hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors`}>
-                    <td className="p-3 text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800 sticky left-0 bg-inherit z-10">
-                      {new Date(e.date).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.weight.toFixed(1)}kg</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{calcPollock7(e.skinfolds, patient.age)}%</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.velocidade10m?.toFixed(2)}s</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.velocidade20m?.toFixed(2)}s</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.yoyo}m</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.rast?.toFixed(1)}</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.cmj}cm</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.lspt}</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.ssg}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </AccordionSection>
-
-        {/* 3. BOX DE DATAS (HISTÓRICO) */}
-        <AccordionSection 
-          title="Histórico" 
-          icon={Calendar} 
-          isOpen={openSections.historico} 
-          onToggle={() => toggleSection('historico')}
-        >
-          <div className="mt-4">
-              <div className="grid grid-cols-4 gap-2">
-                {visibleEvaluations.map((e, idx) => (
-                  <button
-                    key={e.id}
-                    onClick={() => setSelectedEvalId(e.id)}
-                    className={`px-2 py-3 rounded-xl text-[10px] font-bold transition-all flex flex-col items-center gap-1 ${
-                      selectedEvalId === e.id
-                        ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-lg scale-105'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <span>{new Date(e.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}</span>
-                  </button>
-                ))}
-              </div>
-
-              {isAdmin && selectedEval && (
-                <div className="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 border-slate-100 dark:border-slate-800 pt-3 md:pt-0 mt-4">
-                  <button className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-orange-600 transition-all">
-                    <Plus size={14} />
-                    Nova Avaliação
-                  </button>
-                </div>
-              )}
             </div>
         </AccordionSection>
 
@@ -959,19 +904,25 @@ export default function PatientProfile() {
                       {[
                         { label: 'Pescoço', value: selectedEval.measurements.neck },
                         { label: 'Tórax', value: selectedEval.measurements.chest },
-                        { label: 'Bíceps', value: selectedEval.measurements.biceps },
-                        { label: 'Antebraço', value: selectedEval.measurements.forearm },
+                        { label: 'Bíceps', value: selectedEval.measurements.biceps, isLimb: true },
+                        { label: 'Antebraço', value: selectedEval.measurements.forearm, isLimb: true },
                         { label: 'Cintura', value: selectedEval.measurements.waist },
                         { label: 'Abdômen', value: selectedEval.measurements.abdomen },
                         { label: 'Quadril', value: selectedEval.measurements.hip },
-                        { label: 'Coxa Prox.', value: selectedEval.measurements.proximalThigh },
-                        { label: 'Coxa Med.', value: selectedEval.measurements.medialThigh },
-                        { label: 'Coxa Dist.', value: selectedEval.measurements.distalThigh },
-                        { label: 'Panturrilha', value: selectedEval.measurements.calf },
+                        { label: 'Coxa Prox.', value: selectedEval.measurements.proximalThigh, isLimb: true },
+                        { label: 'Coxa Med.', value: selectedEval.measurements.medialThigh, isLimb: true },
+                        { label: 'Coxa Dist.', value: selectedEval.measurements.distalThigh, isLimb: true },
+                        { label: 'Panturrilha', value: selectedEval.measurements.calf, isLimb: true },
                       ].map((item, idx) => (
                         <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col justify-center text-center">
                           <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase mb-1">{item.label}</p>
-                          <p className="text-sm font-black text-slate-700 dark:text-slate-200">{Math.round(item.value)}</p>
+                          {item.isLimb ? (
+                            <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">
+                              D {Math.round(item.value)} <span className="mx-1 text-slate-300">|</span> E {Math.round(item.value)}
+                            </p>
+                          ) : (
+                            <p className="text-sm font-black text-slate-700 dark:text-slate-200">{Math.round(item.value)}</p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1056,7 +1007,7 @@ export default function PatientProfile() {
                         <span>3. Agilidade (COD)</span>
                       </h3>
                       <div className="space-y-2">
-                        <TestRow label="Teste de Illinois (s)" value={selectedEval.specificTests.illinois} info={TEST_INFO.illinois} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Aceleração e Velocidade de mudança" value={selectedEval.specificTests.illinois} info={TEST_INFO.illinois} isLiberated={selectedEval.isLiberated} />
                         <TestRow label="Arrowhead Test (s)" value={selectedEval.specificTests.arrowhead ? Number(selectedEval.specificTests.arrowhead.toFixed(2)) : undefined} info={TEST_INFO.arrowhead} isLiberated={selectedEval.isLiberated} />
                       </div>
                     </section>
@@ -1079,9 +1030,9 @@ export default function PatientProfile() {
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
                         <TestRow label="Sprint com Bola (s)" value={selectedEval.specificTests.sprintBola ? Number(selectedEval.specificTests.sprintBola.toFixed(2)) : undefined} info={TEST_INFO.sprintBola} isLiberated={selectedEval.isLiberated} />
-                        <TestRow label="Slalom com Bola (s)" value={selectedEval.specificTests.slalom ? Number(selectedEval.specificTests.slalom.toFixed(2)) : undefined} info={TEST_INFO.slalom} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Agilidade com bola (s)" value={selectedEval.specificTests.slalom ? Number(selectedEval.specificTests.slalom.toFixed(2)) : undefined} info={TEST_INFO.slalom} isLiberated={selectedEval.isLiberated} />
                         <TestRow label="LSPT (Pts)" value={selectedEval.specificTests.lspt} info={TEST_INFO.lspt} isLiberated={selectedEval.isLiberated} />
-                        <TestRow label="Wall Pass Test (Reps)" value={selectedEval.specificTests.wallPass} info={TEST_INFO.wallPass} isLiberated={selectedEval.isLiberated} />
+                        <TestRow label="Precisão de passe (rep)" value={selectedEval.specificTests.wallPass} info={TEST_INFO.wallPass} isLiberated={selectedEval.isLiberated} />
                         <TestRow label="Finalização sob Fadiga" value={selectedEval.specificTests.finalizacao} info={TEST_INFO.finalizacao} isLiberated={selectedEval.isLiberated} />
                         <TestRow label="Jogos Reduzidos SSG" value={selectedEval.specificTests.ssg} info={TEST_INFO.ssg} isLiberated={selectedEval.isLiberated} />
                       </div>
@@ -1091,6 +1042,51 @@ export default function PatientProfile() {
                 </AccordionSection>
               </>
             )}
+
+        {/* RESUMO COMPLETO */}
+        <AccordionSection 
+          title="Resumo completo" 
+          icon={FileText} 
+          isOpen={openSections.tabela} 
+          onToggle={() => toggleSection('tabela')}
+        >
+          <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/50">
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10">Data</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Peso</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">% BF</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Vel. 10m</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Vel. 20m</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">Yo-Yo</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">RAST</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">CMJ</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">LSPT</th>
+                  <th className="p-3 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">SSG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleEvaluations.map((e, idx) => (
+                  <tr key={e.id} className={`${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/50 dark:bg-slate-800/20'} hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors`}>
+                    <td className="p-3 text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800 sticky left-0 bg-inherit z-10">
+                      {new Date(e.date).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.weight.toFixed(1)}kg</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{calcPollock7(e.skinfolds, patient.age)}%</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.velocidade10m?.toFixed(2)}s</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.velocidade20m?.toFixed(2)}s</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.yoyo}m</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.rast?.toFixed(1)}</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.cmj}cm</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.lspt}</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.ssg}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </AccordionSection>
 
       </main>
     </div>

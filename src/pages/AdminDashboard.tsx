@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogOut, MessageCircle, Search, Filter, AlertTriangle, CheckCircle, Activity, User, Plus, X, Calendar as CalendarIcon, Clock, Check, Bell } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 type Record = {
@@ -53,6 +54,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'monitoring' | 'scheduling' | 'athletes'>('monitoring');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{title: string, message: string, onConfirm: () => void} | null>(null);
   const [newAppointment, setNewAppointment] = useState({ 
     athleteId: '' as string | number, 
     date: new Date().toLocaleDateString('sv-SE'), 
@@ -195,12 +198,19 @@ export default function AdminDashboard() {
   };
 
   const deleteAppointment = async (id: string) => {
-    try {
-      await supabase.from('appointments').delete().eq('id', id);
-      setAppointments(appointments.filter(a => a.id !== id));
-    } catch (error) {
-      console.error('Error deleting appointment:', error);
-    }
+    setConfirmAction({
+      title: "Excluir Agendamento",
+      message: "Deseja realmente excluir este agendamento?",
+      onConfirm: async () => {
+        try {
+          await supabase.from('appointments').delete().eq('id', id);
+          setAppointments(appointments.filter(a => a.id !== id));
+        } catch (error) {
+          console.error('Error deleting appointment:', error);
+        }
+      }
+    });
+    setIsConfirmModalOpen(true);
   };
 
   const confirmAppointment = async (id: string) => {
@@ -244,56 +254,72 @@ export default function AdminDashboard() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      if (!newAthlete.name || !newAthlete.email || !newAthlete.phone) {
-        alert('Nome, email e telefone são obrigatórios.');
-        return;
-      }
-
-      // Chama a Serverless Function da Vercel
-      const response = await fetch('/api/criar-atleta', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newAthlete.name,
-          email: newAthlete.email,
-          phone: newAthlete.phone,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao criar atleta');
-      }
-
-      alert('Atleta criado com sucesso! A senha provisória é o telefone (apenas números).');
-      setIsModalOpen(false);
-      setNewAthlete({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
-      
-      // Recarrega a lista
-      const profiles = await supabaseService.getProfiles();
-      if (profiles) {
-        const pending = profiles.filter(p => p.status === 'pending');
-        setPendingAthletes(pending);
-      }
-    } catch (error: any) {
-      console.error('Erro ao adicionar atleta:', error);
-      alert(`Erro: ${error.message}`);
+    
+    if (!newAthlete.name || !newAthlete.email || !newAthlete.phone) {
+      alert('Nome, email e telefone são obrigatórios.');
+      return;
     }
+
+    setConfirmAction({
+      title: "Confirmar Cadastro",
+      message: `Deseja realmente cadastrar o atleta ${newAthlete.name}?`,
+      onConfirm: async () => {
+        try {
+          // Chama a Serverless Function da Vercel
+          const response = await fetch('/api/criar-atleta', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: newAthlete.name,
+              email: newAthlete.email,
+              phone: newAthlete.phone,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Erro ao criar atleta');
+          }
+
+          alert('Atleta criado com sucesso! A senha provisória é o telefone (apenas números).');
+          setIsModalOpen(false);
+          setNewAthlete({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
+          
+          // Recarrega a lista
+          const profiles = await supabaseService.getProfiles();
+          if (profiles) {
+            const pending = profiles.filter(p => p.status === 'pending');
+            setPendingAthletes(pending);
+          }
+        } catch (error: any) {
+          console.error('Erro ao adicionar atleta:', error);
+          alert(`Erro: ${error.message}`);
+        }
+      }
+    });
+    setIsConfirmModalOpen(true);
   };
 
   const handleApproveAthlete = async (id: string) => {
-    try {
-      await supabaseService.updateProfile(id, { status: 'active' });
-      setPendingAthletes(pendingAthletes.filter(a => a.id !== id));
-      alert('Atleta aprovado com sucesso!');
-    } catch (error) {
-      console.error('Error approving athlete:', error);
-      alert('Erro ao aprovar atleta.');
-    }
+    const athlete = pendingAthletes.find(a => a.id === id);
+    setConfirmAction({
+      title: "Aprovar Atleta",
+      message: `Deseja realmente aprovar o atleta ${athlete?.full_name}?`,
+      onConfirm: async () => {
+        try {
+          await supabaseService.updateProfile(id, { status: 'active' });
+          setPendingAthletes(pendingAthletes.filter(a => a.id !== id));
+          alert('Atleta aprovado com sucesso!');
+        } catch (error) {
+          console.error('Error approving athlete:', error);
+          alert('Erro ao aprovar atleta.');
+        }
+      }
+    });
+    setIsConfirmModalOpen(true);
   };
 
   const filteredRecords = records.filter(r => 
@@ -619,10 +645,10 @@ export default function AdminDashboard() {
                               </Link>
                               <Link 
                                 to={`/patient/${athlete.id}?action=eval`}
-                                className="px-2 py-1 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-[10px] font-bold flex items-center gap-1"
+                                className="px-4 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-[10px] font-bold flex items-center justify-center gap-1 min-w-[80px]"
                               >
                                 <Plus size={12} />
-                                <span className="hidden xs:inline">Avaliar</span>
+                                <span>Avaliar</span>
                               </Link>
                             </div>
                           </td>
@@ -1055,6 +1081,39 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {isConfirmModalOpen && confirmAction && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">{confirmAction.title}</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{confirmAction.message}</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setIsConfirmModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    confirmAction.onConfirm();
+                    setIsConfirmModalOpen(false);
+                  }}
+                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600 transition shadow-lg shadow-orange-500/20"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Load saved email if rememberMe was previously checked
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+
     // Check if user is already logged in (e.g., returning from OAuth)
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -108,15 +117,54 @@ export default function Login() {
     setLoading(true);
     setError('');
 
+    let loginEmail = email;
+
+    // Se o usuário digitou algo que parece um telefone (apenas números ou formatos comuns) e não tem @
+    const isPhone = /^[0-9\s\-\(\)\+]+$/.test(email) && !email.includes('@');
+    
+    if (isPhone) {
+      try {
+        const cleanPhone = email.replace(/\D/g, '');
+        // Busca o e-mail associado a este telefone na tabela de perfis
+        const { data: profile, error: phoneError } = await supabase
+          .from('profiles')
+          .select('email')
+          .or(`phone.eq.${cleanPhone},phone.ilike.%${cleanPhone}%`)
+          .limit(1)
+          .maybeSingle();
+          
+        if (profile?.email) {
+          loginEmail = profile.email;
+        } else {
+          // Se não achou o perfil pelo telefone, avisa o usuário
+          setError('Não encontramos nenhum atleta com este telefone. Tente usar seu e-mail.');
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Erro ao buscar e-mail por telefone:', err);
+      }
+    }
+
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message === 'Invalid login credentials') {
+          throw new Error('E-mail ou senha incorretos. Lembre-se: para novos atletas, a senha inicial é o seu telefone (apenas números).');
+        }
+        throw authError;
+      }
 
       if (data.user) {
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
         await handleUserRedirect(data.user.id);
       }
     } catch (err: any) {
@@ -188,15 +236,35 @@ export default function Login() {
               required
             />
           </div>
-          <div>
+          <div className="relative">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none transition"
+              className="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none transition pr-12"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 mt-1">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="rememberMe" className="text-sm text-gray-600 dark:text-slate-400 cursor-pointer select-none">
+              Lembrar meu e-mail
+            </label>
           </div>
           
           {error && <p className="text-red-500 text-sm">{error}</p>}
