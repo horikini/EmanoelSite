@@ -35,6 +35,14 @@ export interface Appointment {
   status: 'pending' | 'confirmed' | 'canceled';
 }
 
+export interface Evaluation {
+  id?: string;
+  athlete_id: string;
+  date: string;
+  type: 'physical' | 'specific';
+  data: any;
+}
+
 export const supabaseService = {
   // Profiles
   async getProfiles() {
@@ -164,6 +172,36 @@ export const supabaseService = {
         author_id: authorId,
         text: text
       }]);
+    if (error) throw error;
+    return data;
+  },
+
+  // Access Logs
+  async logAccess(userId: string) {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Check if already logged today
+    const { data: existing } = await supabase
+      .from('access_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .limit(1);
+
+    if (existing && existing.length > 0) return;
+
+    const { error } = await supabase
+      .from('access_logs')
+      .insert([{ user_id: userId, date: today }]);
+    
+    if (error) console.error('Error logging access:', error);
+  },
+
+  async getAccessLogs(userId: string) {
+    const { data, error } = await supabase
+      .from('access_logs')
+      .select('date')
+      .eq('user_id', userId);
     if (error) throw error;
     return data;
   }

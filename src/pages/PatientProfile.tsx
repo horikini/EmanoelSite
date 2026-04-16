@@ -134,8 +134,19 @@ const METRIC_OPTIONS = [
   { value: 'urineColor', label: 'Coloração da Urina (1-8)' },
   { value: 'painLevel', label: 'Nível de Dor (0-10)' },
   { value: 'velocidade10m', label: 'Velocidade 10m (s)' },
+  { value: 'velocidade20m', label: 'Velocidade 20m (s)' },
   { value: 'yoyo', label: 'Yo-Yo Test (m)' },
+  { value: 'rast', label: 'RAST' },
+  { value: 'illinois', label: 'Aceleração e Mudança' },
+  { value: 'arrowhead', label: 'Arrowhead' },
   { value: 'cmj', label: 'Salto CMJ (cm)' },
+  { value: 'dinamometria', label: 'Dinamometria' },
+  { value: 'sprintBola', label: 'Sprint Bola' },
+  { value: 'slalom', label: 'Agilidade com bola (s)' },
+  { value: 'lspt', label: 'LSPT' },
+  { value: 'wallPass', label: 'Precisão de passe (rep)' },
+  { value: 'finalizacao', label: 'Finalização' },
+  { value: 'ssg', label: 'SSG' },
 ];
 
 function AccordionSection({ title, icon: Icon, isOpen, onToggle, children, rightAction }: any) {
@@ -186,7 +197,7 @@ export default function PatientProfile() {
   
   // UI States
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    perfil: true,
+    perfil: false,
     recados: true,
     acompanhamento: true,
     historico: false,
