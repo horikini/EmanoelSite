@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User, ChevronRight, ChevronDown, ChevronUp, Ruler, Timer, BarChart2, FileText, Target, HelpCircle, Info, Lock, Calendar, Phone, CheckCircle } from 'lucide-react';
+import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User, ChevronRight, ChevronDown, ChevronUp, Ruler, Timer, BarChart2, FileText, Target, HelpCircle, Info, Lock, Calendar, Phone, CheckCircle, Settings } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { supabase } from '../lib/supabase';
 import { supabaseService, Profile, Appointment, Evaluation } from '../lib/supabaseService';
@@ -129,8 +129,8 @@ function FrequencyGrid({ logs }: { logs: string[] }) {
   const today = new Date();
   const days = [];
   
-  // Last 12 weeks (84 days)
-  for (let i = 83; i >= 0; i--) {
+  // Last 30 days
+  for (let i = 29; i >= 0; i--) {
     const date = new Date();
     date.setDate(today.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
@@ -458,6 +458,9 @@ export default function UserDashboard() {
               <User size={16} />
             </div>
           )}
+          <button onClick={() => navigate('/settings')} className="p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white transition">
+            <Settings size={20} />
+          </button>
           <button onClick={handleLogout} className="p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white transition">
             <LogOut size={20} />
           </button>
@@ -740,8 +743,8 @@ export default function UserDashboard() {
             </select>
           }
         >
-          <div className="h-64 w-full mt-4" style={{ minHeight: '256px' }}>
-            <ResponsiveContainer width="100%" height="100%" aspect={1.5}>
+          <div className="h-64 w-full mt-4" style={{ minHeight: '256px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={getChartData()} margin={{ top: 30, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis 
