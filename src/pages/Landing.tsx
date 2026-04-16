@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, Zap, Trophy, Dumbbell, Target, HeartPulse, LineChart, Utensils, ShieldCheck, Lock, Users, LogOut, LayoutDashboard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-const NeonButton = ({ children, to, className = "" }: { children: React.ReactNode; to?: string; className?: string }) => {
+const NeonButton = ({ children, to, href, className = "" }: { children: React.ReactNode; to?: string; href?: string; className?: string }) => {
   const content = (
     <>
       <span className="absolute block neon-btn-span-1" />
@@ -22,6 +22,14 @@ const NeonButton = ({ children, to, className = "" }: { children: React.ReactNod
       <Link to={to} className={baseClasses}>
         {content}
       </Link>
+    );
+  }
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={baseClasses}>
+        {content}
+      </a>
     );
   }
 
@@ -85,9 +93,9 @@ export default function Landing() {
           <div className="flex items-center justify-center">
             <Link
               to={session ? (localStorage.getItem('userRole') === 'admin' ? "/admin" : "/dashboard") : "/login"}
-              className="bg-orange-500 border border-orange-400 text-white px-8 py-2.5 rounded-full text-sm font-black tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/30 active:scale-95 uppercase italic"
+              className="text-slate-300 hover:text-white px-6 py-2 rounded-full text-sm font-medium transition-colors border border-slate-800 hover:border-slate-600 hover:bg-slate-800/50 backdrop-blur-sm"
             >
-              ATLETA ELS POWER
+              Login
             </Link>
           </div>
         </div>
@@ -196,7 +204,7 @@ export default function Landing() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-col gap-3 w-full"
           >
-            <NeonButton className="w-full md:w-max">
+            <NeonButton href="https://wa.me/557791463640?text=Ol%C3%A1%2C%20Acabei%20de%20visitar%20o%20seu%20Site%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%2C%20sobre%20os%20treinamentos" className="w-full md:w-max">
               INICIAR TREINAMENTO
               <ChevronRight size={20} />
             </NeonButton>
@@ -330,7 +338,7 @@ export default function Landing() {
                 viewport={{ once: true }}
                 className="pt-4"
               >
-                <NeonButton className="w-full md:w-max">
+                <NeonButton href="https://wa.me/557791463640?text=Ol%C3%A1%2C%20Acabei%20de%20visitar%20o%20seu%20Site%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%2C%20sobre%20os%20treinamentos" className="w-full md:w-max">
                   INICIAR TREINAMENTO
                   <ChevronRight size={20} />
                 </NeonButton>
@@ -624,7 +632,7 @@ export default function Landing() {
           <p className="text-slate-300 text-xl mb-10">
             Junte-se à ELS POWER e tenha acesso ao treinamento, acompanhamento e estrutura que os atletas profissionais utilizam.
           </p>
-          <NeonButton to="/login" className="w-full md:w-max">
+          <NeonButton href="https://wa.me/557791463640?text=Ol%C3%A1%2C%20Acabei%20de%20visitar%20o%20seu%20Site%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%2C%20sobre%20os%20treinamentos" className="w-full md:w-max">
             INICIAR TREINAMENTO
             <ChevronRight size={20} />
           </NeonButton>

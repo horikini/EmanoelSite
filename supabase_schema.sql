@@ -87,3 +87,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- 6. Messages Table (Mural de Recados)
+CREATE TABLE messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  athlete_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  text TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view messages for them or by them" ON messages FOR SELECT USING (auth.uid() = athlete_id OR auth.uid() = author_id OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Admins can insert messages" ON messages FOR INSERT WITH CHECK ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');

@@ -12,7 +12,7 @@ export interface Profile {
   position1?: string;
   position2?: string;
   photo?: string;
-  role: 'admin' | 'athlete';
+  role: 'admin' | 'athlete' | 'user';
   status?: 'pending' | 'active' | 'blocked';
 }
 
@@ -141,6 +141,29 @@ export const supabaseService = {
       .from('evaluations')
       .update(updates)
       .eq('id', id);
+    if (error) throw error;
+    return data;
+  },
+
+  // Messages
+  async getMessages(athleteId: string) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*, profiles!messages_author_id_fkey(full_name)')
+      .eq('athlete_id', athleteId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+
+  async addMessage(athleteId: string, authorId: string, text: string) {
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([{
+        athlete_id: athleteId,
+        author_id: authorId,
+        text: text
+      }]);
     if (error) throw error;
     return data;
   }

@@ -25,6 +25,7 @@ export default function UserDashboard() {
   const [submitted, setSubmitted] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,6 +60,15 @@ export default function UserDashboard() {
         // Fetch appointments
         const apps = await supabaseService.getAppointments(userId);
         setAppointments(apps);
+
+        // Fetch messages
+        const msgs = await supabaseService.getMessages(userId);
+        setMessages(msgs.map(m => ({
+          id: m.id,
+          text: m.text,
+          date: m.created_at,
+          author: m.profiles?.full_name || 'Admin'
+        })));
 
         // Check if already submitted today
         const today = new Date().toISOString().split('T')[0];
@@ -170,9 +180,9 @@ export default function UserDashboard() {
             }}
           />
           <div id="fallback-user-logo" className="hidden">
-            <h1 className="font-black italic text-xl">ELS POWER</h1>
+            <h1 className="font-black italic text-xl"></h1>
           </div>
-          <p className="text-xs text-slate-400 border-l border-slate-700 pl-3 ml-1">Monitoramento Diário</p>
+          <p className="text-xs text-slate-400 border-l border-slate-700 pl-3 ml-1 font-bold uppercase tracking-widest">Monitoramento</p>
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
@@ -245,6 +255,27 @@ export default function UserDashboard() {
           </div>
         )}
 
+        {/* Mural de Recados */}
+        {messages.length > 0 && (
+          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="text-orange-500" size={20} />
+              <h3 className="font-bold text-slate-800 dark:text-white">Mural de Recados</h3>
+            </div>
+            <div className="space-y-3">
+              {messages.map(msg => (
+                <div key={msg.id} className="bg-orange-50 dark:bg-orange-900/10 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/30 shadow-sm">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">{msg.text}</p>
+                  <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                    <span>{msg.author}</span>
+                    <span>{new Date(msg.date).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-3 mb-8">
           <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
             <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Peso Atual</p>
@@ -255,8 +286,8 @@ export default function UserDashboard() {
             <p className="text-lg font-black text-orange-500">11.4 <span className="text-[10px] font-normal">%</span></p>
           </div>
           <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
-            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Yo-Yo Test</p>
-            <p className="text-lg font-black text-blue-500">2040 <span className="text-[10px] font-normal">m</span></p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">IMC</p>
+            <p className="text-lg font-black text-blue-500">22.5</p>
           </div>
         </div>
 
@@ -341,10 +372,10 @@ export default function UserDashboard() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <Activity className="text-red-500" size={20} />
+                    <Activity className="text-orange-500" size={20} />
                     <h3 className="font-bold text-slate-800 dark:text-white">Nível de Dor</h3>
                   </div>
-                  <span className="text-lg font-black text-red-500">{pain}</span>
+                  <span className="text-lg font-black text-orange-500">{pain}</span>
                 </div>
                 <input 
                   type="range" 
@@ -352,7 +383,10 @@ export default function UserDashboard() {
                   max="10" 
                   value={pain} 
                   onChange={(e) => setPain(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500"
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #f97316 ${pain * 10}%, #e2e8f0 ${pain * 10}%)`
+                  }}
                 />
                 <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-bold uppercase">
                   <span>Sem Dor</span>
@@ -374,7 +408,10 @@ export default function UserDashboard() {
                   max="10" 
                   value={fatigue} 
                   onChange={(e) => setFatigue(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #f97316 ${fatigue * 10}%, #e2e8f0 ${fatigue * 10}%)`
+                  }}
                 />
                 <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-bold uppercase">
                   <span>Descansado</span>

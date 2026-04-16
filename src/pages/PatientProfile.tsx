@@ -74,47 +74,6 @@ interface Appointment {
   createdAt: string;
 }
 
-// --- Mock Data Generator ---
-const generateMockEvaluations = (): Evaluation[] => {
-  const evals: Evaluation[] = [];
-  const startDate = new Date('2023-06-01');
-  
-  for (let i = 0; i < 12; i++) {
-    const date = new Date(startDate);
-    date.setMonth(startDate.getMonth() + i);
-    
-    evals.push({
-      id: `eval-${i}`,
-      date: date.toISOString().split('T')[0],
-      isLiberated: true, // Simulate all results liberated as requested
-      weight: 70 + Math.random() * 5,
-      height: 178,
-      measurements: { 
-        neck: 37 + Math.random(), chest: 95 + Math.random() * 5, biceps: 31 + Math.random() * 3, 
-        forearm: 27 + Math.random() * 2, waist: 78 + Math.random() * 5, abdomen: 80 + Math.random() * 5, 
-        hip: 94 + Math.random() * 4, proximalThigh: 54 + Math.random() * 4, medialThigh: 50 + Math.random() * 4, 
-        distalThigh: 42 + Math.random() * 3, calf: 37 + Math.random() * 2 
-      },
-      skinfolds: { 
-        triceps: 10 + Math.random() * 4, subscapular: 12 + Math.random() * 4, chest: 6 + Math.random() * 4, 
-        axillary: 8 + Math.random() * 4, suprailiac: 12 + Math.random() * 5, abdominal: 14 + Math.random() * 6, 
-        thigh: 12 + Math.random() * 4, calf: 10 + Math.random() * 3, biceps: 4 + Math.random() * 3, 
-        iliacCrest: 13 + Math.random() * 5 
-      },
-      specificTests: { 
-        velocidade10m: 1.8 - (i * 0.02), velocidade20m: 3.2 - (i * 0.03), yoyo: 1600 + (i * 50), 
-        rast: 6.8 - (i * 0.1), illinois: 16 - (i * 0.2), arrowhead: 8.8 - (i * 0.1), 
-        cmj: 38 + (i * 1), dinamometria: 15 - (i * 0.5), sprintBola: 3.6 - (i * 0.05), 
-        slalom: 17 - (i * 0.2), lspt: 50 - (i * 1), wallPass: 18 + i, 
-        finalizacao: 6 + Math.floor(i/2), ssg: 80 + i 
-      },
-      urineColor: Math.floor(Math.random() * 3) + 1,
-      painLevel: Math.floor(Math.random() * 3)
-    });
-  }
-  return evals;
-};
-
 // --- Calculations ---
 const calcIMC = (weight: number, heightCm: number) => {
   const h = heightCm / 100;
@@ -228,6 +187,7 @@ export default function PatientProfile() {
   // UI States
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     perfil: true,
+    recados: true,
     acompanhamento: true,
     historico: false,
     avaliacao: false,
@@ -238,6 +198,8 @@ export default function PatientProfile() {
   const [bfEquation, setBfEquation] = useState<'pollock3' | 'pollock7' | 'guedes'>('pollock7');
   const [showAllDates, setShowAllDates] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [messages, setMessages] = useState<{id: string, text: string, date: string, author: string}[]>([]);
+  const [newMessage, setNewMessage] = useState('');
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -359,8 +321,8 @@ export default function PatientProfile() {
           painLevel: e.data.painLevel
         }));
 
-        // If no evaluations, generate mock ones for demonstration
-        const finalEvals = mappedEvals.length > 0 ? mappedEvals : generateMockEvaluations();
+        // Use real evaluations only
+        const finalEvals = mappedEvals;
 
         setPatient({
           id: profile.id,
@@ -402,6 +364,15 @@ export default function PatientProfile() {
           type: a.type,
           status: a.status as any,
           createdAt: a.date
+        })));
+
+        // Fetch messages
+        const msgs = await supabaseService.getMessages(id);
+        setMessages(msgs.map(m => ({
+          id: m.id,
+          text: m.text,
+          date: m.created_at,
+          author: m.profiles?.full_name || 'Admin'
         })));
 
       } catch (error) {
@@ -539,15 +510,31 @@ export default function PatientProfile() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-12 transition-colors">
       {/* Header */}
-      <header className="bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md text-white p-4 sticky top-0 z-20 shadow-lg border-b border-white/10 flex items-center gap-4">
-        <button 
-          onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-lg text-sm hover:bg-white/20 transition border border-white/10"
-        >
-          <ArrowLeft size={16} />
-          <span className="hidden sm:inline">Voltar</span>
-        </button>
-        <h1 className="font-bold text-lg flex-1 text-center md:text-left drop-shadow-md">Perfil do Atleta</h1>
+      <header className="bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md text-white p-4 sticky top-0 z-20 shadow-lg border-b border-white/10 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-lg text-sm hover:bg-white/20 transition border border-white/10"
+          >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Voltar</span>
+          </button>
+          <h1 className="font-bold text-lg hidden md:block drop-shadow-md">Perfil do Atleta</h1>
+        </div>
+        
+        <div className="flex items-center gap-3 bg-white/10 dark:bg-slate-800/30 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 dark:border-slate-700/50 shadow-inner">
+          <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center overflow-hidden border-2 border-orange-500/30 shadow-lg shadow-orange-500/20">
+            {patient.photo ? (
+              <img src={patient.photo} alt={patient.name} className="w-full h-full object-cover" />
+            ) : (
+              <User size={20} />
+            )}
+          </div>
+          <div className="hidden sm:block">
+            <h2 className="text-sm font-black text-slate-800 dark:text-white tracking-tight leading-tight">{patient.name}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">ID: #{patient.id} • {patient.age} anos</p>
+          </div>
+        </div>
       </header>
 
       <main className="p-3 md:p-6 max-w-7xl mx-auto space-y-4">
@@ -556,7 +543,7 @@ export default function PatientProfile() {
 
         {/* 1. PERFIL */}
         <AccordionSection 
-          title="Perfil" 
+          title="Informações de Contato" 
           icon={User} 
           isOpen={openSections.perfil} 
           onToggle={() => toggleSection('perfil')}
@@ -576,42 +563,7 @@ export default function PatientProfile() {
             )
           }
         >
-            <div className="flex items-center gap-4 mb-6 mt-2">
-              <div className="relative group">
-                <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center overflow-hidden border-2 border-white dark:border-slate-800 shadow-md">
-                  {patient.photo ? (
-                    <img src={patient.photo} alt={patient.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <User size={40} />
-                  )}
-                </div>
-                {isEditingProfile && (
-                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera size={20} />
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setEditForm(prev => ({ ...prev, photo: reader.result as string }));
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{patient.name}</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">ID: #{patient.id} • {patient.age} anos</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50 mt-4">
               <div className="space-y-1">
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Contato</p>
                 {isEditingProfile ? (
@@ -687,6 +639,74 @@ export default function PatientProfile() {
                 Nova Avaliação
               </button>
             )}
+        </AccordionSection>
+
+        {/* 1.5. MURAL DE RECADOS */}
+        <AccordionSection 
+          title="Mural de Recados" 
+          icon={FileText} 
+          isOpen={openSections.recados} 
+          onToggle={() => toggleSection('recados')}
+        >
+          <div className="mt-4">
+            {isAdmin && (
+              <div className="mb-4 flex gap-2">
+                <input 
+                  type="text" 
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Escreva um recado para o atleta..."
+                  className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500 dark:text-white"
+                />
+                <button 
+                  onClick={async () => {
+                    if (newMessage.trim() && patient) {
+                      try {
+                        const authorId = localStorage.getItem('userId');
+                        if (!authorId) return;
+
+                        await supabaseService.addMessage(String(patient.id), authorId, newMessage);
+                        
+                        const updatedMsgs = await supabaseService.getMessages(String(patient.id));
+                        setMessages(updatedMsgs.map(m => ({
+                          id: m.id,
+                          text: m.text,
+                          date: m.created_at,
+                          author: m.profiles?.full_name || 'Admin'
+                        })));
+                        
+                        setNewMessage('');
+                      } catch (error) {
+                        console.error('Error sending message:', error);
+                        alert('Erro ao enviar mensagem.');
+                      }
+                    }
+                  }}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-orange-600 transition"
+                >
+                  Enviar
+                </button>
+              </div>
+            )}
+            
+            <div className="space-y-3">
+              {messages.length === 0 ? (
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 min-h-[100px] flex items-center justify-center">
+                  <p className="text-slate-500 dark:text-slate-400 text-sm italic">Nenhum recado no momento.</p>
+                </div>
+              ) : (
+                messages.map(msg => (
+                  <div key={msg.id} className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-xl border border-orange-100 dark:border-orange-900/30">
+                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">{msg.text}</p>
+                    <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase">
+                      <span>{msg.author}</span>
+                      <span>{new Date(msg.date).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </AccordionSection>
 
         {/* AGENDAMENTOS SECTION */}
@@ -873,13 +893,21 @@ export default function PatientProfile() {
                           <p className="text-[10px] text-slate-400 font-bold uppercase">Peso</p>
                           <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{selectedEval.weight.toFixed(1)} <span className="text-[10px] font-normal text-slate-500">kg</span></p>
                         </div>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 text-center">
-                          <p className="text-[10px] text-slate-400 font-bold uppercase">Altura</p>
-                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{Math.round(selectedEval.height)} <span className="text-[10px] font-normal text-slate-500">cm</span></p>
+                        <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded-lg border border-orange-100 dark:border-orange-900/50 text-center">
+                          <p className="text-[10px] text-orange-600 dark:text-orange-400 font-bold uppercase mb-1">% Gordura</p>
+                          <p className="text-sm font-bold text-orange-700 dark:text-orange-500">
+                            {bfEquation === 'pollock3' ? calcPollock3(selectedEval.skinfolds, patient.age) : bfEquation === 'pollock7' ? calcPollock7(selectedEval.skinfolds, patient.age) : calcGuedes(selectedEval.skinfolds)}%
+                          </p>
                         </div>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-100 dark:border-blue-900/50 text-center col-span-2">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-100 dark:border-blue-900/50 text-center">
                           <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase">IMC</p>
                           <p className="text-sm font-bold text-blue-700 dark:text-blue-300">{calcIMC(selectedEval.weight, selectedEval.height)}</p>
+                        </div>
+                        <div className="bg-cyan-50 dark:bg-cyan-900/20 p-2 rounded-lg border border-cyan-100 dark:border-cyan-900/50 text-center">
+                          <p className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold uppercase mb-1">Hidratação</p>
+                          <p className="text-sm font-bold text-cyan-700 dark:text-cyan-500">
+                            {((100 - Number(bfEquation === 'pollock3' ? calcPollock3(selectedEval.skinfolds, patient.age) : bfEquation === 'pollock7' ? calcPollock7(selectedEval.skinfolds, patient.age) : calcGuedes(selectedEval.skinfolds))) * 0.73).toFixed(1)}%
+                          </p>
                         </div>
                         
                         <div className="col-span-2 mt-2">
@@ -894,10 +922,10 @@ export default function PatientProfile() {
                           </select>
                         </div>
 
-                        <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded-lg border border-orange-100 dark:border-orange-900/50 text-center col-span-2">
-                          <p className="text-[10px] text-orange-600 dark:text-orange-400 font-bold uppercase mb-1">% Gordura</p>
-                          <p className="text-sm font-bold text-orange-700 dark:text-orange-500">
-                            {bfEquation === 'pollock3' ? calcPollock3(selectedEval.skinfolds, patient.age) : bfEquation === 'pollock7' ? calcPollock7(selectedEval.skinfolds, patient.age) : calcGuedes(selectedEval.skinfolds)}%
+                        <div className="bg-cyan-50 dark:bg-cyan-900/20 p-2 rounded-lg border border-cyan-100 dark:border-cyan-900/50 text-center col-span-2">
+                          <p className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold uppercase mb-1">Hidratação</p>
+                          <p className="text-sm font-bold text-cyan-700 dark:text-cyan-500">
+                            {((100 - Number(bfEquation === 'pollock3' ? calcPollock3(selectedEval.skinfolds, patient.age) : bfEquation === 'pollock7' ? calcPollock7(selectedEval.skinfolds, patient.age) : calcGuedes(selectedEval.skinfolds))) * 0.73).toFixed(1)}%
                           </p>
                         </div>
                         <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/50 text-center">
@@ -906,11 +934,9 @@ export default function PatientProfile() {
                             {(100 - Number(bfEquation === 'pollock3' ? calcPollock3(selectedEval.skinfolds, patient.age) : bfEquation === 'pollock7' ? calcPollock7(selectedEval.skinfolds, patient.age) : calcGuedes(selectedEval.skinfolds))).toFixed(1)}%
                           </p>
                         </div>
-                        <div className="bg-cyan-50 dark:bg-cyan-900/20 p-2 rounded-lg border border-cyan-100 dark:border-cyan-900/50 text-center">
-                          <p className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold uppercase mb-1">Hidratação</p>
-                          <p className="text-sm font-bold text-cyan-700 dark:text-cyan-500">
-                            {((100 - Number(bfEquation === 'pollock3' ? calcPollock3(selectedEval.skinfolds, patient.age) : bfEquation === 'pollock7' ? calcPollock7(selectedEval.skinfolds, patient.age) : calcGuedes(selectedEval.skinfolds))) * 0.73).toFixed(1)}%
-                          </p>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 text-center">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">Altura</p>
+                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{Math.round(selectedEval.height)} <span className="text-[10px] font-normal text-slate-500">cm</span></p>
                         </div>
                         <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded-lg border border-purple-100 dark:border-purple-900/50 text-center col-span-2">
                           <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold uppercase mb-1">Massa Óssea (Estimada)</p>
@@ -963,7 +989,7 @@ export default function PatientProfile() {
                                 <div 
                                   key={i} 
                                   className={`w-2 h-6 rounded-sm ${i < selectedEval.painLevel! ? (
-                                    i < 3 ? 'bg-emerald-400' : i < 7 ? 'bg-yellow-400' : 'bg-red-500'
+                                    i < 3 ? 'bg-orange-300' : i < 7 ? 'bg-orange-500' : 'bg-red-500'
                                   ) : 'bg-slate-200 dark:bg-slate-700'}`}
                                 ></div>
                               ))}

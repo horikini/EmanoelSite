@@ -69,6 +69,9 @@ export default function AdminDashboard() {
   const [newAthlete, setNewAthlete] = useState({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
   const [pendingAthletes, setPendingAthletes] = useState<any[]>([]);
   const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+  const [adminProfile, setAdminProfile] = useState<any>(null);
+  const [isAdminProfileModalOpen, setIsAdminProfileModalOpen] = useState(false);
+  const [adminEditForm, setAdminEditForm] = useState({ full_name: '', photo: '' });
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -79,6 +82,14 @@ export default function AdminDashboard() {
 
     const loadData = async () => {
       try {
+        const userId = localStorage.getItem('userId');
+        let adminProf = null;
+        if (userId) {
+          adminProf = await supabaseService.getProfile(userId);
+          setAdminProfile(adminProf);
+          setAdminEditForm({ full_name: adminProf.full_name || 'Admin', photo: adminProf.photo || '' });
+        }
+
         const [profiles, monitoring, apps] = await Promise.all([
           supabaseService.getProfiles(),
           supabaseService.getMonitoringRecords(),
@@ -86,7 +97,7 @@ export default function AdminDashboard() {
         ]);
 
         if (profiles && monitoring) {
-          const athletes = profiles.filter(p => p.role === 'athlete');
+          const athletes = profiles.filter(p => p.role === 'athlete' || p.role === 'user');
           setAllAthletes(athletes);
           
           const pending = profiles.filter(p => p.status === 'pending');
@@ -222,7 +233,7 @@ export default function AdminDashboard() {
 
   const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const athlete = records.find(r => String(r.id) === String(newAppointment.athleteId));
+    const athlete = allAthletes.find(a => String(a.id) === String(newAppointment.athleteId));
     if (!athlete) return;
 
     const iterations = newAppointment.isWeekly ? newAppointment.weeksCount : 1;
@@ -312,8 +323,28 @@ export default function AdminDashboard() {
     const athlete = records.find(r => r.id === app.athleteId);
     if (!athlete) return;
     const dateStr = new Date(app.date).toLocaleDateString('pt-BR');
-    const text = encodeURIComponent(`Olá, ${app.athleteName}, o seu agendamento está marcado para ${dateStr} às ${app.time}, favor confirmar, até mais! abraços ELS POWER`);
+    const text = encodeURIComponent(`Olá, ${app.athleteName}, o seu agendamento está marcado para ${dateStr} às ${app.time}, favor confirmar, até mais! abraços`);
     window.open(`https://wa.me/${athlete.phone}?text=${text}`, '_blank');
+  };
+
+  const handleSaveAdminProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      
+      await supabaseService.updateProfile(userId, {
+        full_name: adminEditForm.full_name,
+        photo: adminEditForm.photo
+      });
+      
+      setAdminProfile({ ...adminProfile, ...adminEditForm });
+      setIsAdminProfileModalOpen(false);
+      alert('Perfil atualizado com sucesso!');
+    } catch (error) {
+      console.error('Error updating admin profile:', error);
+      alert('Erro ao atualizar perfil.');
+    }
   };
 
   const handleLogout = async () => {
@@ -334,7 +365,7 @@ export default function AdminDashboard() {
   };
 
   const openWhatsApp = (phone: string, name: string) => {
-    const text = encodeURIComponent(`Olá ${name}, vi seu relatório no ELS POWER.`);
+    const text = encodeURIComponent(`Olá ${name}, vi seu relatório.`);
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
   };
 
@@ -419,24 +450,26 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors">
       {/* Header */}
-      <header className="bg-slate-900 dark:bg-slate-900 text-white p-3 sticky top-0 z-20 shadow-md flex justify-between items-center">
+      <header className="bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md text-white p-3 sticky top-0 z-20 shadow-md flex justify-between items-center border-b border-white/10">
         <div className="flex items-center gap-3">
-          <img 
-            src="/logo.jpeg" 
-            alt="Logo" 
-            className="h-8 w-auto object-contain"
-            onError={(e) => {
-              const target = e.currentTarget;
-              if (target.src.endsWith('.jpeg')) target.src = '/logo.jpg';
-              else if (target.src.endsWith('.jpg')) target.src = '/logo.png';
-              else {
-                target.style.display = 'none';
-                document.getElementById('fallback-admin-logo')!.style.display = 'flex';
-              }
-            }}
-          />
-          <div id="fallback-admin-logo" className="hidden w-8 h-8 bg-orange-500 rounded-md items-center justify-center font-bold italic">⚽</div>
-          <h1 className="font-bold text-lg hidden xs:block">Admin CRM</h1>
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:bg-white/10 p-2 rounded-2xl transition-all border border-white/5 bg-white/5 backdrop-blur-xl shadow-inner"
+            onClick={() => setIsAdminProfileModalOpen(true)}
+          >
+            {adminProfile?.photo ? (
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500/50 shadow-lg shadow-orange-500/20">
+                <img src={adminProfile.photo} alt="Admin" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
+                <User size={20} />
+              </div>
+            )}
+            <div>
+              <h1 className="font-black text-sm tracking-tight leading-none">{adminProfile?.full_name || 'Admin'}</h1>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Administrador</p>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -451,11 +484,6 @@ export default function AdminDashboard() {
             )}
           </button>
           <ThemeToggle />
-          {isAdmin && (
-            <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-orange-500/20 border border-white/20">
-              AD
-            </div>
-          )}
           <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg text-sm hover:bg-slate-700 transition">
             <LogOut size={16} />
             <span className="hidden sm:inline">Sair</span>
@@ -741,7 +769,7 @@ export default function AdminDashboard() {
                                 className="px-2 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-[10px] font-bold flex items-center gap-1"
                               >
                                 <User size={12} />
-                                <span className="hidden xs:inline">Perfil</span>
+                                <span className="hidden xs:inline">Perfil Completo</span>
                               </Link>
                               <button 
                                 onClick={() => handleOpenEvalModal(athlete)}
@@ -890,12 +918,12 @@ export default function AdminDashboard() {
                 <select 
                   required
                   value={newAppointment.athleteId}
-                  onChange={e => setNewAppointment({...newAppointment, athleteId: Number(e.target.value)})}
+                  onChange={e => setNewAppointment({...newAppointment, athleteId: e.target.value})}
                   className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                 >
                   <option value="">Selecione um atleta...</option>
-                  {records.map(r => (
-                    <option key={r.id} value={r.id}>{r.user}</option>
+                  {allAthletes.map(a => (
+                    <option key={a.id} value={a.id}>{a.full_name}</option>
                   ))}
                 </select>
               </div>
@@ -1003,6 +1031,72 @@ export default function AdminDashboard() {
       )}
 
       {/* Modal de Aprovação */}
+      {isAdminProfileModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md p-6 shadow-xl relative border border-slate-200 dark:border-slate-800">
+            <button 
+              onClick={() => setIsAdminProfileModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-full p-1"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+              <User className="text-orange-500" size={24} />
+              Editar Perfil Admin
+            </h3>
+            
+            <form onSubmit={handleSaveAdminProfile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Principal</label>
+                <input 
+                  type="text" 
+                  required
+                  value={adminEditForm.full_name}
+                  onChange={e => setAdminEditForm({...adminEditForm, full_name: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Foto de Perfil</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700">
+                    {adminEditForm.photo ? (
+                      <img src={adminEditForm.photo} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={24} className="text-slate-400" />
+                    )}
+                  </div>
+                  <label className="cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors border border-slate-200 dark:border-slate-700">
+                    Escolher Foto
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setAdminEditForm(prev => ({ ...prev, photo: reader.result as string }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+              <button 
+                type="submit"
+                className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20 mt-6"
+              >
+                Salvar Alterações
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {isPendingModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl p-6 shadow-xl relative border border-slate-200 dark:border-slate-800 my-8">
