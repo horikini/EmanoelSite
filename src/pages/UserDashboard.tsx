@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User, ChevronRight, ChevronDown, ChevronUp, Ruler, Timer, BarChart2, FileText, Target, HelpCircle, Info, Lock, Calendar, Phone, CheckCircle, Settings } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { supabase } from '../lib/supabase';
 import { supabaseService, Profile, Appointment, Evaluation } from '../lib/supabaseService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
-import { AnimatePresence } from 'framer-motion';
 
 const URINE_COLORS = [
   { id: '1', color: '#ffffff', label: 'Transparente', desc: 'Hidratação excessiva ou ideal' },
@@ -171,6 +170,151 @@ function FrequencyGrid({ logs }: { logs: string[] }) {
   );
 }
 
+// --- Components ---
+
+function ScoreBar({ value, onChange, colorClass, label }: { value: number, onChange: (v: number) => void, colorClass: string, label: string }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-end">
+        <h3 className="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wider">{label}</h3>
+        <span className={`text-2xl font-black ${colorClass.includes('orange') ? 'text-orange-500' : 'text-blue-500'}`}>{value}</span>
+      </div>
+      <div className="flex gap-1.5 h-10">
+        {Array.from({ length: 11 }).map((_, i) => (
+          <motion.button
+            key={i}
+            type="button"
+            whileHover={{ scaleY: 1.1, zIndex: 10 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onChange(i)}
+            className={`flex-1 rounded-md transition-all duration-300 ${
+              value === i 
+                ? colorClass + ' shadow-lg shadow-orange-500/20' 
+                : (value !== null && value !== 0 && i <= value)
+                  ? colorClass.replace('bg-', 'bg-') + ' opacity-40'
+                  : 'bg-slate-100 dark:bg-slate-800'
+            }`}
+            style={{ 
+              opacity: (value !== null && value !== 0 && i > value) ? 0.3 : 1
+            }}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between text-[10px] text-slate-400 font-black uppercase tracking-widest">
+        <span>Sem impacto</span>
+        <span>Máximo {label.split(' ').pop()}</span>
+      </div>
+    </div>
+  );
+}
+
+  function WeekSchedule({ appointments = [], onConfirm, onCancel }: any) {
+  const [minimized, setMinimized] = useState(false);
+  const today = new Date();
+  
+  // Calculate Start of Week (Sunday)
+  const startOfWeek = new Date(today);
+  startOfWeek.setHours(0,0,0,0);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  
+  // Calculate End of Week (Saturday)
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23,59,59,999);
+
+  const safeApps = Array.isArray(appointments) ? appointments : [];
+  
+  // Strict current week filter
+  const currentWeekApps = safeApps.filter((a: any) => {
+    const appDate = new Date(a.date);
+    return appDate >= startOfWeek && appDate <= endOfWeek;
+  });
+
+  const pendingApps = currentWeekApps.filter((a: any) => a.status === 'pending');
+  
+  const weekDays = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    return d;
+  });
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div 
+        className="p-4 flex items-center justify-between cursor-pointer"
+        onClick={() => setMinimized(!minimized)}
+      >
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="text-orange-500" size={18} />
+          <h3 className="font-bold text-sm text-slate-800 dark:text-white">Minha Semana</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {pendingApps.length > 0 && (
+            <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+              {pendingApps.length} Pendentes
+            </span>
+          )}
+          {minimized ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronUp size={18} className="text-slate-400" />}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {!minimized && (
+          <motion.div 
+            initial={{ height: 0 }} 
+            animate={{ height: 'auto' }} 
+            exit={{ height: 0 }}
+            className="px-4 pb-4 overflow-hidden"
+          >
+            <div className="grid grid-cols-7 gap-1 mb-4">
+              {weekDays.map((date, i) => {
+                const isToday = date.toDateString() === today.toDateString();
+                const dayApps = currentWeekApps.filter((a: any) => new Date(a.date).toDateString() === date.toDateString());
+                const hasPending = dayApps.some((a: any) => a.status === 'pending');
+                
+                return (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <span className={`text-[10px] font-bold uppercase ${isToday ? 'text-orange-500' : 'text-slate-400'}`}>
+                      {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][i]}
+                    </span>
+                    <div className={`w-full aspect-square rounded-xl flex items-center justify-center relative transition-all ${
+                      isToday ? 'bg-orange-500 text-white border-2 border-orange-200' : 'bg-slate-50 dark:bg-slate-800 text-slate-600'
+                    }`}>
+                      <span className="text-xs font-black">{date.getDate()}</span>
+                      {dayApps.length > 0 && (
+                        <div className={`absolute -bottom-1 w-1.5 h-1.5 rounded-full ${hasPending ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {pendingApps.length > 0 ? (
+              <div className="space-y-2">
+                {pendingApps.map((app: any) => (
+                  <div key={app.id} className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-2xl border border-orange-100 dark:border-orange-900/20 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">{app.type}</p>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{app.time}</p>
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => onConfirm(app.id, 'confirmed')} className="p-2 bg-emerald-500 text-white rounded-xl shadow-sm hover:scale-105 transition"><Check size={14}/></button>
+                       <button onClick={() => onCancel(app.id, 'canceled')} className="p-2 bg-slate-200 dark:bg-slate-800 text-slate-500 rounded-xl hover:scale-105 transition"><X size={14}/></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-[10px] text-slate-400 font-bold uppercase py-2">Nenhum compromisso pendente</p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // --- Calculations ---
 const calcIMC = (weight: number, heightCm: number) => {
   const h = heightCm / 100;
@@ -194,6 +338,21 @@ const calcGuedes = (skinfolds: any) => {
   const bd = 1.17136 - (0.06706 * Math.log10(sum3));
   return ((495 / bd) - 450).toFixed(1);
 };
+
+const BODY_PARTS = [
+  { id: 'neck', label: 'Pescoço' },
+  { id: 'shoulders', label: 'Ombros' },
+  { id: 'chest', label: 'Peitoral' },
+  { id: 'back', label: 'Costas' },
+  { id: 'arms', label: 'Braços' },
+  { id: 'wrists', label: 'Punhos/Mãos' },
+  { id: 'abdomen', label: 'Abdômen' },
+  { id: 'hips', label: 'Quadril' },
+  { id: 'thighs', label: 'Coxas' },
+  { id: 'knees', label: 'Joelhos' },
+  { id: 'calves', label: 'Panturrilhas' },
+  { id: 'ankles', label: 'Tornozelos/Pés' }
+];
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -351,6 +510,17 @@ export default function UserDashboard() {
       });
   };
 
+  // Body Map State
+  const [painLocations, setPainLocations] = useState<string[]>([]);
+  
+  const toggleBodyPart = (id: string) => {
+    if (painLocations.includes(id)) {
+      setPainLocations(painLocations.filter(p => p !== id));
+    } else {
+      setPainLocations([...painLocations, id]);
+    }
+  };
+
   const handleUpdateAppointmentStatus = async (id: string, status: 'confirmed' | 'canceled') => {
     try {
       await supabaseService.updateAppointmentStatus(id, status);
@@ -368,6 +538,39 @@ export default function UserDashboard() {
     navigate('/');
   };
 
+  const calculateStreak = () => {
+    if (accessLogs.length === 0) return 0;
+    const sortedDates = [...new Set(accessLogs)].map(d => new Date(d)).sort((a, b) => b.getTime() - a.getTime());
+    let currentStreak = 0;
+    
+    // Check if we start the streak today or yesterday
+    let checkDate = new Date();
+    checkDate.setHours(0,0,0,0);
+    
+    const hasToday = sortedDates.some(d => {
+      const logD = new Date(d);
+      logD.setHours(0,0,0,0);
+      return logD.getTime() === checkDate.getTime();
+    });
+    
+    if (!hasToday) {
+      checkDate.setDate(checkDate.getDate() - 1); // Start checking from yesterday if they haven't logged today yet
+    }
+
+    for (let i = 0; i < sortedDates.length; i++) {
+        const logDate = new Date(sortedDates[i]);
+        logDate.setHours(0,0,0,0);
+        
+        if (logDate.getTime() === checkDate.getTime()) {
+           currentStreak++;
+           checkDate.setDate(checkDate.getDate() - 1);
+        } else if (logDate.getTime() < checkDate.getTime()) {
+           break;
+        }
+    }
+    return currentStreak;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hydration) return alert('Por favor, selecione a cor da urina.');
@@ -382,8 +585,18 @@ export default function UserDashboard() {
         pain,
         fatigue,
         hydration,
-        status: 'Pendente'
+        status: 'Pendente',
+        pain_location: painLocations.join(', ')
       });
+      
+      if (painLocations.length > 0) {
+        const locationsStr = painLocations.map(p => BODY_PARTS.find(bp => bp.id === p)?.label).join(', ');
+        await supabaseService.addMessage(
+          userId, 
+          userId, 
+          `[Relato Automático - Sistema] Cuidado: Relatei dores locais hoje em: ${locationsStr} (Nível Geral: ${pain})`
+        );
+      }
       
       setSubmitted(true);
     } catch (error) {
@@ -424,12 +637,12 @@ export default function UserDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 transition-colors">
       {/* Header */}
-      <header className="bg-slate-900 dark:bg-slate-900 text-white p-3 sticky top-0 z-10 shadow-md flex justify-between items-center">
-        <div className="flex items-center gap-3">
+      <header className="bg-slate-900 dark:bg-slate-900 text-white p-2 sm:p-3 sticky top-0 z-10 shadow-md flex justify-between items-center h-12 sm:h-14">
+        <div className="flex items-center gap-2">
           <img 
             src="/logo.png" 
             alt="Logo" 
-            className="h-8 w-auto object-contain"
+            className="h-6 sm:h-8 w-auto object-contain"
             onError={(e) => {
               const target = e.currentTarget;
               if (target.src.endsWith('.png')) {
@@ -443,35 +656,43 @@ export default function UserDashboard() {
             }}
           />
           <div id="fallback-user-logo" className="hidden">
-            <h1 className="font-black italic text-xl"></h1>
+            <h1 className="font-black italic text-lg sm:text-xl">ELS</h1>
           </div>
-          <p className="text-xs text-slate-400 border-l border-slate-700 pl-3 ml-1 font-bold uppercase tracking-widest">Monitoramento</p>
+          <p className="text-[10px] sm:text-xs text-slate-400 border-l border-slate-700 pl-2 ml-1 font-bold uppercase tracking-widest leading-none">Monitoramento</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <ThemeToggle />
           {profile?.photo ? (
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-700">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-slate-700 shrink-0">
               <img src={profile.photo} alt="User" className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
-              <User size={16} />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+              <User size={14} />
             </div>
           )}
-          <button onClick={() => navigate('/settings')} className="p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white transition">
-            <Settings size={20} />
+          <button onClick={() => navigate('/settings')} className="p-1.5 sm:p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white transition">
+            <Settings size={16} className="sm:w-5 sm:h-5" />
           </button>
-          <button onClick={handleLogout} className="p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white transition">
-            <LogOut size={20} />
+          <button onClick={handleLogout} className="p-1.5 sm:p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white transition">
+            <LogOut size={16} className="sm:w-5 sm:h-5" />
           </button>
         </div>
       </header>
 
       <main className="p-4 max-w-md mx-auto space-y-6">
-        {/* 1. Greeting */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-tight">Olá, {profile?.full_name?.split(' ')[0] || 'Atleta'}!</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 font-bold uppercase tracking-widest">Bom treino hoje</p>
+        {/* 1. Greeting & Gamification */}
+        <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-tight">Olá, {profile?.full_name?.split(' ')[0] || 'Atleta'}!</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 font-bold uppercase tracking-widest">Bom treino hoje</p>
+          </div>
+          {calculateStreak() > 0 && (
+            <div className="flex items-center gap-1.5 bg-orange-100 dark:bg-orange-900/30 px-3 py-1.5 rounded-full border border-orange-200 dark:border-orange-800/50" title={`Você está há ${calculateStreak()} dias seguidos preenchendo o bem-estar!`}>
+              <Flame size={16} className="text-orange-500" />
+              <span className="text-orange-600 dark:text-orange-400 font-black text-sm">{calculateStreak()}</span>
+            </div>
+          )}
         </div>
 
         {/* 2. Informações de Contato (Collapsed by default) */}
@@ -565,61 +786,15 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* 4. Frequency Grid */}
+        {/* Frequency Grid */}
         <FrequencyGrid logs={accessLogs} />
 
-        {/* Appointments Section */}
-        {appointments.some(a => a.status === 'pending') && (
-          <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center gap-2 mb-4">
-              <CalendarIcon className="text-orange-500" size={20} />
-              <h3 className="font-bold text-slate-800 dark:text-white">Agendamentos Pendentes</h3>
-            </div>
-            <div className="space-y-3">
-              {appointments.filter(a => a.status === 'pending').map(app => (
-                <div key={app.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border-2 border-orange-100 dark:border-orange-900/30 shadow-sm">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="text-[10px] text-orange-500 font-bold uppercase tracking-wider">{app.type}</p>
-                      <p className="font-bold text-slate-800 dark:text-white">Confirme sua presença</p>
-                    </div>
-                    <div className="bg-orange-100 dark:bg-orange-900/30 p-1.5 rounded-lg">
-                      <Clock size={16} className="text-orange-600 dark:text-orange-400" />
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-4 mb-4">
-                    <div className="flex items-center gap-1.5">
-                      <CalendarIcon size={14} className="text-slate-400" />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(app.date).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock size={14} className="text-slate-400" />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{app.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleUpdateAppointmentStatus(app.id, 'confirmed')}
-                      className="flex-1 bg-green-500 text-white py-2 rounded-xl text-xs font-bold hover:bg-green-600 transition flex items-center justify-center gap-1.5"
-                    >
-                      <Check size={14} />
-                      Confirmar
-                    </button>
-                    <button 
-                      onClick={() => handleUpdateAppointmentStatus(app.id, 'canceled')}
-                      className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-2 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-1.5"
-                    >
-                      <X size={14} />
-                      Recusar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Weekly Appointments */}
+        <WeekSchedule 
+          appointments={appointments} 
+          onConfirm={handleUpdateAppointmentStatus} 
+          onCancel={handleUpdateAppointmentStatus} 
+        />
 
         {submitted ? (
           <div className="bg-emerald-50 dark:bg-emerald-900/20 p-8 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 text-center animate-in fade-in zoom-in duration-500">
@@ -643,77 +818,143 @@ export default function UserDashboard() {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-5 font-medium">Selecione a cor da sua urina hoje:</p>
               
-              <div className="flex flex-wrap justify-center gap-3">
-                {URINE_COLORS.map((item) => (
-                  <button 
-                    key={item.id}
-                    type="button"
-                    onClick={() => setHydration(item.id)}
-                    className={`relative w-8 h-8 rounded-full border-2 transition-all ${hydration === item.id ? 'border-cyan-500 scale-125 shadow-lg' : 'border-slate-100 dark:border-slate-800'}`}
-                    style={{ backgroundColor: item.color }}
-                    title={item.label}
-                  >
-                    {hydration === item.id && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-cyan-600 rounded-full shadow-sm" />
-                      </div>
-                    )}
-                  </button>
-                ))}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl overflow-hidden">
+                <div className="flex justify-between gap-1">
+                  {URINE_COLORS.map((item) => (
+                    <motion.button 
+                      key={item.id}
+                      type="button"
+                      whileHover={{ scale: 1.2, zIndex: 10 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setHydration(item.id)}
+                      className={`relative flex-1 aspect-square max-w-[32px] rounded-full border-2 transition-all duration-300 ${
+                        hydration === item.id 
+                          ? 'border-orange-500 shadow-lg scale-110 z-10' 
+                          : hydration 
+                            ? 'border-transparent' 
+                            : 'border-slate-200 dark:border-slate-700'
+                      }`}
+                      style={{ 
+                        backgroundColor: hydration && hydration !== item.id ? '#cbd5e1' : item.color,
+                        opacity: hydration && hydration !== item.id ? 0.3 : 1,
+                        filter: hydration && hydration !== item.id ? 'grayscale(100%)' : 'none'
+                      }}
+                    >
+                      {hydration === item.id && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Check size={14} className="text-orange-600 drop-shadow-sm font-black" />
+                        </div>
+                      )}
+                    </motion.button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* 5 & 6. Pain and Fatigue */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-8">
-              <div>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2">
-                    <Activity className="text-orange-500" size={20} />
-                    <h3 className="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wider">Nível de Dor</h3>
-                  </div>
-                  <span className="text-xl font-black text-orange-500">{pain}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="10" 
-                  value={pain} 
-                  onChange={(e) => setPain(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
-                  style={{
-                    background: `linear-gradient(to right, #f97316 ${pain * 10}%, #e2e8f0 ${pain * 10}%)`
-                  }}
-                />
-                <div className="flex justify-between mt-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                  <span>Sem Dor</span>
-                  <span>Dor Extrema</span>
-                </div>
-              </div>
+            {/* 5. Pain */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+              <ScoreBar 
+                label="Nível de Dor" 
+                value={pain} 
+                onChange={(val) => {
+                  setPain(val);
+                  if (val === 0) setPainLocations([]);
+                }} 
+                colorClass="bg-orange-500" 
+              />
 
-              <div>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2">
-                    <Flame className="text-orange-500" size={20} />
-                    <h3 className="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wider">Nível de Fadiga</h3>
-                  </div>
-                  <span className="text-xl font-black text-orange-500">{fatigue}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="10" 
-                  value={fatigue} 
-                  onChange={(e) => setFatigue(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
-                  style={{
-                    background: `linear-gradient(to right, #f97316 ${fatigue * 10}%, #e2e8f0 ${fatigue * 10}%)`
-                  }}
-                />
-                <div className="flex justify-between mt-3 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                  <span>Descansado</span>
-                  <span>Exausto</span>
-                </div>
-              </div>
+              {/* Botões do Corpo Interativo (Aparecem se a dor for > 0) */}
+              <AnimatePresence>
+                {pain > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }} 
+                    exit={{ opacity: 0, height: 0 }}
+                    className="pt-4 border-t border-slate-100 dark:border-slate-800 overflow-hidden"
+                  >
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 font-bold text-center">Toque no boneco para indicar o local:</p>
+                    
+                    {/* Visual Body Map */}
+                    <div className="relative w-full max-w-[200px] mx-auto aspect-[1/2] mb-8">
+                       <div className="absolute inset-0 flex flex-col items-center gap-1">
+                          {/* Head */}
+                          <motion.button 
+                            type="button"
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => toggleBodyPart('neck')}
+                            className={`w-10 h-10 rounded-full border-2 transition-transform ${painLocations.includes('neck') ? 'bg-orange-500 border-orange-600 scale-110 shadow-lg' : 'bg-slate-200 dark:bg-slate-800 border-transparent'}`}
+                          />
+                          {/* Torso */}
+                          <div className="flex gap-1 items-start">
+                             <motion.button 
+                               type="button"
+                               onClick={() => toggleBodyPart('shoulders')}
+                               className={`w-8 h-12 rounded-lg ${painLocations.includes('shoulders') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`}
+                             />
+                             <motion.button 
+                               type="button"
+                               onClick={() => toggleBodyPart('chest')}
+                               className={`w-16 h-20 rounded-2xl ${painLocations.includes('chest') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`}
+                             />
+                             <motion.button 
+                               type="button"
+                               onClick={() => toggleBodyPart('shoulders')}
+                               className={`w-8 h-12 rounded-lg ${painLocations.includes('shoulders') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`}
+                             />
+                          </div>
+                          {/* Pelvis */}
+                          <motion.button 
+                              type="button"
+                              onClick={() => toggleBodyPart('hips')}
+                              className={`w-14 h-8 rounded-b-xl -mt-2 ${painLocations.includes('hips') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`}
+                          />
+                          {/* Legs */}
+                          <div className="flex gap-4 mt-1">
+                             <div className="flex flex-col gap-1">
+                                <motion.button type="button" onClick={() => toggleBodyPart('thighs')} className={`w-7 h-14 rounded-lg ${painLocations.includes('thighs') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                                <motion.button type="button" onClick={() => toggleBodyPart('knees')} className={`w-5 h-5 rounded-full ${painLocations.includes('knees') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                                <motion.button type="button" onClick={() => toggleBodyPart('calves')} className={`w-5 h-12 rounded-lg ${painLocations.includes('calves') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                                <motion.button type="button" onClick={() => toggleBodyPart('ankles')} className={`w-6 h-4 rounded-sm ${painLocations.includes('ankles') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                             </div>
+                             <div className="flex flex-col gap-1">
+                                <motion.button type="button" onClick={() => toggleBodyPart('thighs')} className={`w-7 h-14 rounded-lg ${painLocations.includes('thighs') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                                <motion.button type="button" onClick={() => toggleBodyPart('knees')} className={`w-5 h-5 rounded-full ${painLocations.includes('knees') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                                <motion.button type="button" onClick={() => toggleBodyPart('calves')} className={`w-5 h-12 rounded-lg ${painLocations.includes('calves') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                                <motion.button type="button" onClick={() => toggleBodyPart('ankles')} className={`w-6 h-4 rounded-sm ${painLocations.includes('ankles') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {BODY_PARTS.map(part => (
+                        <button
+                          key={part.id}
+                          type="button"
+                          onClick={() => toggleBodyPart(part.id)}
+                          className={`px-3 py-1.5 rounded-full text-[10px] font-black transition-all border ${
+                            painLocations.includes(part.id) 
+                              ? 'bg-orange-500 text-white border-orange-500 shadow-sm' 
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400'
+                          }`}
+                        >
+                          {part.label}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* 6. Fadiga */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
+              <ScoreBar 
+                label="Nível de Fadiga" 
+                value={fatigue} 
+                onChange={setFatigue} 
+                colorClass="bg-blue-500" 
+              />
             </div>
 
             <button 

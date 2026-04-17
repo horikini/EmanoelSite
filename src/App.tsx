@@ -14,24 +14,27 @@ import CompleteProfile from './pages/CompleteProfile';
 import PendingApproval from './pages/PendingApproval';
 import ProfileSettings from './pages/ProfileSettings';
 import { ThemeProvider } from './components/ThemeProvider';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/patient/:id" element={<PatientProfile />} />
-          <Route path="/dashboard" element={<UserDashboard />} />
-          <Route path="/settings" element={<ProfileSettings />} />
-          <Route path="/criar-senha" element={<SetPassword />} />
-          <Route path="/complete-profile" element={<CompleteProfile />} />
-          <Route path="/pending-approval" element={<PendingApproval />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/patient/:id" element={<PatientProfile />} />
+            <Route path="/dashboard" element={<UserDashboard />} />
+            <Route path="/settings" element={<ProfileSettings />} />
+            <Route path="/criar-senha" element={<SetPassword />} />
+            <Route path="/complete-profile" element={<CompleteProfile />} />
+            <Route path="/pending-approval" element={<PendingApproval />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

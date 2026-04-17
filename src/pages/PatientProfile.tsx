@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, User, Phone, Activity, Ruler, Timer, Calendar, HelpCircle, Lock, Unlock, Plus, BarChart2, FileText, Target, ChevronDown, ChevronUp, MoreHorizontal, Camera, Edit2, Save, X, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 import { supabase } from '../lib/supabase';
 import { supabaseService, Profile } from '../lib/supabaseService';
@@ -250,9 +250,10 @@ export default function PatientProfile() {
   });
 
   const handleOpenEvalModal = () => {
+    const latestHeight = patient?.evaluations?.length ? patient.evaluations[0].height : '';
     setEvalForm({
       ...evalForm,
-      height: patient?.height || selectedEval?.height || '',
+      height: latestHeight || '',
       date: new Date().toISOString().split('T')[0]
     });
     setIsEvaluationModalOpen(true);
@@ -507,43 +508,47 @@ export default function PatientProfile() {
     while (chartData.length < 6) {
       chartData.push({
         name: '-',
-        value: lastValue,
+        value: Number(lastValue) || 0,
         isGhost: true,
-        displayValue: ''
+        displayValue: 0
       });
     }
   } else if (chartData.length === 0) {
     for (let i = 0; i < 6; i++) {
-      chartData.push({ name: '-', value: 10, isGhost: true, displayValue: '' });
+      chartData.push({ name: '-', value: 0, isGhost: true, displayValue: 0 });
     }
   }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-12 transition-colors">
       {/* Header */}
-      <header className="bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md text-white p-4 sticky top-0 z-20 shadow-lg border-b border-white/10 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <header className="bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md text-white p-2 sm:p-4 sticky top-0 z-20 shadow-lg border-b border-white/10 flex items-center justify-between gap-3 h-12 sm:h-14">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <button 
             onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-lg text-sm hover:bg-white/20 transition border border-white/10"
+            className="flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 bg-white/10 backdrop-blur-sm rounded-lg text-sm hover:bg-white/20 transition border border-white/10"
           >
-            <ArrowLeft size={16} />
-            <span className="hidden sm:inline">Voltar</span>
+            <ArrowLeft size={16} className="sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline sm:ml-2">Voltar</span>
           </button>
-          <h1 className="font-bold text-lg hidden md:block drop-shadow-md">Perfil do Atleta</h1>
+          <h1 className="font-bold text-sm sm:text-lg hidden md:block drop-shadow-md">Perfil do Atleta</h1>
         </div>
         
-        <div className="flex items-center gap-3 bg-white/10 dark:bg-slate-800/30 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 dark:border-slate-700/50 shadow-inner">
-          <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center overflow-hidden border-2 border-orange-500/30 shadow-lg shadow-orange-500/20">
-            {patient.photo ? (
-              <img src={patient.photo} alt={patient.name} className="w-full h-full object-cover" />
-            ) : (
-              <User size={20} />
-            )}
-          </div>
-          <div className="hidden sm:block">
-            <h2 className="text-sm font-black text-slate-800 dark:text-white tracking-tight leading-tight">{patient.name}</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">ID: #{patient.id} • {patient.age} anos</p>
+        <div className="flex flex-1 justify-end">
+          <div className="flex items-center gap-2 sm:gap-3 bg-white/10 dark:bg-slate-800/30 backdrop-blur-xl px-2 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl border border-white/10 dark:border-slate-700/50 shadow-inner overflow-hidden max-w-[200px] sm:max-w-none">
+            <div className="w-7 h-7 sm:w-10 sm:h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center overflow-hidden border border-orange-500/30 shadow-lg shadow-orange-500/20 shrink-0">
+              {patient.photo ? (
+                <img src={patient.photo} alt={patient.name} className="w-full h-full object-cover" />
+              ) : (
+                <User size={14} className="sm:w-5 sm:h-5" />
+              )}
+            </div>
+            <div className="truncate shrink">
+              <h2 className="text-[11px] sm:text-sm font-black text-white tracking-tight leading-tight truncate">{patient.name}</h2>
+              <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate hidden xs:block">
+                ID: #{patient.id} • {patient.age} anos
+              </p>
+            </div>
           </div>
         </div>
       </header>
@@ -1193,11 +1198,11 @@ export default function PatientProfile() {
                     <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{calcPollock7(e.skinfolds, patient.age)}%</td>
                     <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.velocidade10m?.toFixed(2)}s</td>
                     <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.velocidade20m?.toFixed(2)}s</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.yoyo}m</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests.rast?.toFixed(1)}</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.cmj}cm</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.lspt}</td>
-                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.ssg}</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests?.yoyo || '-'}m</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests?.rast?.toFixed(1) || '-'}</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests?.cmj || '-'}cm</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests?.lspt || '-'}</td>
+                    <td className="p-3 text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{e.specificTests?.ssg || '-'}</td>
                   </tr>
                 ))}
               </tbody>

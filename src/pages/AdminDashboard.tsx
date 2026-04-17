@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogOut, MessageCircle, Search, Filter, AlertTriangle, CheckCircle, Activity, User, Plus, X, Calendar as CalendarIcon, Clock, Check, Bell, Ruler, ArrowLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LogOut, MessageCircle, Search, Filter, AlertTriangle, CheckCircle, Activity, User, Plus, X, Calendar as CalendarIcon, Clock, Check, Bell, Ruler, ArrowLeft, ChevronLeft, ChevronRight, Eye, MessageSquare, Send } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ThemeToggle } from '../components/ThemeToggle';
+import Select from 'react-select';
 
-type Record = {
+type AthleticRecord = {
   id: string | number;
   date: string;
   user: string;
@@ -20,6 +21,7 @@ type Record = {
   fatigue: number;
   hydration: string;
   status: string;
+  pain_location?: string;
 };
 
 type Appointment = {
@@ -48,13 +50,23 @@ const STATUS_OPTIONS = [
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const isAdmin = localStorage.getItem('userRole') === 'admin';
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<AthleticRecord[]>([]);
   const [allAthletes, setAllAthletes] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'monitoring' | 'scheduling' | 'athletes'>('monitoring');
+  const [activeTab, setActiveTab] = useState<'monitoring' | 'scheduling' | 'athletes' | 'messages'>('monitoring');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  
+  // Messages Tab State
+  const [allMessages, setAllMessages] = useState<any[]>([]);
+  const [accessLogs, setAccessLogs] = useState<any[]>([]);
+  const [newMessageRecado, setNewMessageRecado] = useState({
+    recipient: 'all',
+    frequency: 'once', 
+    text: ''
+  });
+
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{title: string, message: string, onConfirm: () => void} | null>(null);
   const [newAppointment, setNewAppointment] = useState({ 
@@ -73,6 +85,14 @@ export default function AdminDashboard() {
   const [isAdminProfileModalOpen, setIsAdminProfileModalOpen] = useState(false);
   const [adminEditForm, setAdminEditForm] = useState({ full_name: '', photo: '' });
 
+  // Calendar State
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [selectedDayContext, setSelectedDayContext] = useState<Date | null>(new Date());
+  
+  // WhatsApp notification State
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [scheduledSummary, setScheduledSummary] = useState<any>(null);
+
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     if (role !== 'admin') {
@@ -90,11 +110,16 @@ export default function AdminDashboard() {
           setAdminEditForm({ full_name: adminProf.full_name || 'Admin', photo: adminProf.photo || '' });
         }
 
-        const [profiles, monitoring, apps] = await Promise.all([
+        const [profiles, monitoring, apps, messagesData, logsData] = await Promise.all([
           supabaseService.getProfiles(),
           supabaseService.getMonitoringRecords(),
-          supabaseService.getAppointments()
+          supabaseService.getAppointments(),
+          supabaseService.getAllMessages(),
+          supabaseService.getAllAccessLogs()
         ]);
+
+        if (messagesData) setAllMessages(messagesData);
+        if (logsData) setAccessLogs(logsData);
 
         if (profiles && monitoring) {
           const athletes = profiles.filter(p => p.role === 'athlete' || p.role === 'user');
@@ -120,7 +145,8 @@ export default function AdminDashboard() {
               pain: m.pain,
               fatigue: m.fatigue,
               hydration: m.hydration,
-              status: m.status
+              status: m.status,
+              pain_location: m.pain_location
             };
           });
           setRecords(mappedRecords);
@@ -278,7 +304,25 @@ export default function AdminDashboard() {
         createdAt: a.date
       })));
       
+      // Set up summary for WhatsApp
+      let summaryText = '';
+      if (!newAppointment.isWeekly) {
+         summaryText = `agendamento para a data ${new Date(newAppointment.date + 'T12:00:00').toLocaleDateString('pt-BR')} e horario ${newAppointment.time}`;
+      } else {
+         const daysMap: any = { '1': 'Seg', '2': 'Ter', '3': 'Qua', '4': 'Qui', '5': 'Sex', '6': 'Sáb', '0': 'Dom' };
+         const dayNames = newAppointment.selectedDays.map((d: string) => daysMap[d]).join(', ');
+         summaryText = `agendamento para as datas (${dayNames}) e horario ${newAppointment.time} durante as proximas ${newAppointment.weeksCount} semanas`;
+      }
+      
+      setScheduledSummary({
+        athleteName: athlete.full_name,
+        athletePhone: athlete.phone,
+        summaryText
+      });
+      
       setIsAppointmentModalOpen(false);
+      setIsWhatsAppModalOpen(true);
+
       setNewAppointment({ 
         athleteId: '', 
         date: new Date().toLocaleDateString('sv-SE'), 
@@ -413,7 +457,11 @@ export default function AdminDashboard() {
           }
         } catch (error: any) {
           console.error('Erro ao adicionar atleta:', error);
-          alert(`Erro: ${error.message}`);
+          if (error.message === 'Failed to fetch') {
+             alert('Aviso de Rede (Failed to fetch): O servidor falhou ao processar a requisição. Verifique as configurações de URL/Chave do Supabase.');
+          } else {
+             alert(`Erro: ${error.message}`);
+          }
         }
       }
     });
@@ -447,45 +495,105 @@ export default function AdminDashboard() {
     a.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const renderCalendar = () => {
+    const daysInMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate();
+    const firstDay = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1).getDay();
+    const days = [];
+    
+    // Previous month blanks
+    for (let i = 0; i < firstDay; i++) {
+       days.push(<div key={`empty-${i}`} className="p-2"></div>);
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+       const date = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
+       const isSelected = selectedDayContext && date.toDateString() === selectedDayContext.toDateString();
+       
+       // Compare ignoring time zones
+       const hasAppointments = appointments.some(a => {
+         const dateParts = a.date.split('-');
+         if (dateParts.length !== 3) return false;
+         const appDate = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+         return appDate.toDateString() === date.toDateString();
+       });
+       
+       days.push(
+         <button 
+           key={day}
+           onClick={() => setSelectedDayContext(date)}
+           className={`p-2 w-10 h-10 rounded-full flex mx-auto items-center justify-center text-sm font-medium transition-all ${
+             isSelected ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 
+             'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+           } relative`}
+         >
+           {day}
+           {hasAppointments && !isSelected && (
+             <div className="absolute bottom-1 w-1 h-1 bg-orange-500 rounded-full"></div>
+           )}
+         </button>
+       );
+    }
+    
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-6 shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+           <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() -1, 1))} className="p-2 text-slate-500 hover:text-orange-500 bg-slate-100 dark:bg-slate-800 rounded-lg transition"><ChevronLeft size={20} /></button>
+           <div className="font-bold text-slate-800 dark:text-white capitalize">
+             {calendarMonth.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+           </div>
+           <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() +1, 1))} className="p-2 text-slate-500 hover:text-orange-500 bg-slate-100 dark:bg-slate-800 rounded-lg transition"><ChevronRight size={20} /></button>
+        </div>
+        <div className="grid grid-cols-7 text-center mb-2">
+          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
+            <div key={d} className="text-[10px] font-bold text-slate-400 uppercase">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-y-2">
+          {days}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors">
       {/* Header */}
-      <header className="bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md text-white p-3 sticky top-0 z-20 shadow-md flex justify-between items-center border-b border-white/10">
-        <div className="flex items-center gap-3">
+      <header className="bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md text-white p-2 sm:p-3 sticky top-0 z-20 shadow-md flex justify-between items-center border-b border-white/10 h-12 sm:h-14">
+        <div className="flex items-center gap-2">
           <div 
-            className="flex items-center gap-3 cursor-pointer hover:bg-white/10 p-2 rounded-2xl transition-all border border-white/5 bg-white/5 backdrop-blur-xl shadow-inner"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:bg-white/10 p-1.5 sm:p-2 rounded-xl sm:rounded-2xl transition-all border border-white/5 bg-white/5 backdrop-blur-xl shadow-inner"
             onClick={() => setIsAdminProfileModalOpen(true)}
           >
             {adminProfile?.photo ? (
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500/50 shadow-lg shadow-orange-500/20">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-orange-500/50 shadow-lg shadow-orange-500/20 shrink-0">
                 <img src={adminProfile.photo} alt="Admin" className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
-                <User size={20} />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700 shrink-0">
+                <User size={14} className="sm:w-4 sm:h-4" />
               </div>
             )}
             <div>
-              <h1 className="font-black text-sm tracking-tight leading-none">{adminProfile?.full_name || 'Admin'}</h1>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Administrador</p>
+              <h1 className="font-black text-[11px] sm:text-xs tracking-tight leading-none">{adminProfile?.full_name || 'Admin'}</h1>
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Administrador</p>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <button 
             onClick={() => setIsPendingModalOpen(true)}
-            className="relative p-2 text-slate-300 hover:text-white transition-colors"
+            className="relative p-1.5 sm:p-2 text-slate-300 hover:text-white transition-colors"
           >
-            <Bell size={20} />
+            <Bell size={16} className="sm:w-5 sm:h-5" />
             {pendingAthletes.length > 0 && (
-              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
+              <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold flex items-center justify-center rounded-full">
                 {pendingAthletes.length}
               </span>
             )}
           </button>
           <ThemeToggle />
-          <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg text-sm hover:bg-slate-700 transition">
-            <LogOut size={16} />
+          <button onClick={handleLogout} className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 bg-slate-800 rounded-lg text-sm hover:bg-slate-700 transition">
+            <LogOut size={16} className="sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">Sair</span>
           </button>
         </div>
@@ -493,7 +601,7 @@ export default function AdminDashboard() {
 
       <main className="p-3 md:p-8 max-w-7xl mx-auto">
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl w-fit">
+        <div className="flex flex-wrap gap-1 mb-6 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl w-fit">
           <button 
             onClick={() => setActiveTab('monitoring')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'monitoring' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
@@ -505,6 +613,13 @@ export default function AdminDashboard() {
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'scheduling' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
             Agendamento
+          </button>
+          <button 
+            onClick={() => setActiveTab('messages')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'messages' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          >
+            <MessageSquare size={14} />
+            Mural de Recados
           </button>
         </div>
 
@@ -620,6 +735,13 @@ export default function AdminDashboard() {
                       <p className={`text-sm font-bold ${parseInt(record.hydration) >= 6 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{record.hydration}</p>
                     </div>
                   </div>
+
+                  {record.pain_location && (
+                    <div className="bg-red-50 dark:bg-red-900/10 p-2 rounded-lg border border-red-100 dark:border-red-900/20 mb-1">
+                       <p className="text-[9px] font-black text-red-600 dark:text-red-400 uppercase leading-none mb-1">Locais de Dor:</p>
+                       <p className="text-[10px] text-red-700 dark:text-red-300 font-bold">{record.pain_location}</p>
+                    </div>
+                  )}
 
                   <div className="pt-1">
                     <select 
@@ -805,76 +927,234 @@ export default function AdminDashboard() {
                 Novo Agendamento
               </button>
             </div>
+            
+            {renderCalendar()}
+            
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+              Agendamentos para {selectedDayContext?.toLocaleDateString('pt-BR') || 'Selecione uma data'}
+            </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {appointments.length === 0 ? (
+              {appointments.filter(app => {
+                  if(!selectedDayContext) return true;
+                  const dateParts = app.date.split('-');
+                  if (dateParts.length !== 3) return false;
+                  const appDate = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+                  return appDate.toDateString() === selectedDayContext.toDateString();
+              }).length === 0 ? (
                 <div className="col-span-full bg-white dark:bg-slate-900 p-12 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
                   <CalendarIcon size={48} className="mx-auto text-slate-300 mb-4" />
-                  <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum agendamento realizado.</p>
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum agendamento para este dia.</p>
                 </div>
               ) : (
-                appointments.map(app => (
-                  <div key={app.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl flex items-center justify-center font-bold">
+                appointments.filter(app => {
+                  if(!selectedDayContext) return true;
+                  const dateParts = app.date.split('-');
+                  const appDate = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+                  return appDate.toDateString() === selectedDayContext.toDateString();
+                }).sort((a,b) => a.time.localeCompare(b.time)).map(app => (
+                  <div key={app.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
                           {app.athleteName.charAt(0)}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-slate-800 dark:text-white">{app.athleteName}</p>
-                          <button 
-                            onClick={() => sendAppointmentWhatsApp(app)}
-                            className="text-green-500 hover:text-green-600 transition-colors"
-                            title="Enviar WhatsApp"
-                          >
-                            <MessageCircle size={14} />
-                          </button>
+                        <div className="overflow-hidden">
+                          <p className="font-bold text-xs text-slate-800 dark:text-white leading-tight truncate">{app.athleteName}</p>
+                          <span className="text-[9px] text-slate-500 font-medium truncate block">{app.type}</span>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => deleteAppointment(app.id)}
-                        className="text-slate-300 hover:text-red-500 transition-colors p-1"
-                      >
-                        <X size={16} />
-                      </button>
+                      <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-100 dark:border-slate-800 items-center gap-1.5 shrink-0">
+                        <Clock size={12} className="text-orange-500" />
+                        <span className="text-xs font-black text-slate-700 dark:text-slate-300">{app.time}</span>
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                        <CalendarIcon size={14} className="text-slate-400" />
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{new Date(app.date).toLocaleDateString('pt-BR')}</span>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                        <Clock size={14} className="text-slate-400" />
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{app.time}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
                           app.status === 'confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                           app.status === 'canceled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
                           'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                         }`}>
-                          {app.status === 'confirmed' ? <Check size={10} /> : app.status === 'canceled' ? <X size={10} /> : <Clock size={10} />}
+                          {app.status === 'confirmed' ? <Check size={8} /> : app.status === 'canceled' ? <X size={8} /> : <Clock size={8} />}
                           {app.status === 'confirmed' ? 'Confirmado' : app.status === 'canceled' ? 'Cancelado' : 'Pendente'}
                         </div>
                         {app.status === 'pending' && (
                           <button 
                             onClick={() => confirmAppointment(app.id)}
-                            className="bg-green-500 text-white p-1 rounded-md hover:bg-green-600 transition"
+                            className="bg-green-500 text-white p-1 rounded hover:bg-green-600 transition"
                             title="Confirmar Agendamento"
                           >
-                            <Check size={12} />
+                            <Check size={10} />
                           </button>
                         )}
                       </div>
-                      <span className="text-[10px] text-slate-400">Criado em {new Date(app.createdAt).toLocaleDateString('pt-BR')}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button 
+                          onClick={() => sendAppointmentWhatsApp(app)}
+                          className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors bg-green-50 dark:bg-green-900/20 p-1.5 rounded-md"
+                          title="Enviar WhatsApp"
+                        >
+                          <MessageCircle size={12} />
+                        </button>
+                        <button 
+                          onClick={() => deleteAppointment(app.id)}
+                          className="text-slate-400 hover:text-red-500 transition-colors bg-slate-50 dark:bg-slate-800 p-1.5 rounded-md"
+                          title="Excluir Agendamento"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'messages' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Mural de Recados</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Envie mensagens globais ou diretas para os atletas</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Form de Envio */}
+              <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 h-fit">
+                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                  <MessageSquare size={18} className="text-orange-500" />
+                  Novo Recado
+                </h3>
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newMessageRecado.text) return;
+                    try {
+                      // Se for 'all', envia pra todos
+                      const adminId = adminProfile?.id || '';
+                      if (newMessageRecado.recipient === 'all') {
+                        const promises = allAthletes.map(athlete => 
+                          supabaseService.addMessage(athlete.id, adminId, `[Mural - ${newMessageRecado.frequency}] ${newMessageRecado.text}`)
+                        );
+                        await Promise.all(promises);
+                      } else {
+                        await supabaseService.addMessage(newMessageRecado.recipient, adminId, `[Mural - ${newMessageRecado.frequency}] ${newMessageRecado.text}`);
+                      }
+                      
+                      alert('Recado enviado com sucesso!');
+                      const messagesData = await supabaseService.getAllMessages();
+                      if (messagesData) setAllMessages(messagesData);
+                      
+                      setNewMessageRecado({ recipient: 'all', frequency: 'once', text: '' });
+                    } catch (error) {
+                      console.error(error);
+                      alert('Erro ao enviar recado.');
+                    }
+                  }} 
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Destinatário</label>
+                    <select
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 outline-none text-slate-800 dark:text-white"
+                      value={newMessageRecado.recipient}
+                      onChange={(e) => setNewMessageRecado({...newMessageRecado, recipient: e.target.value})}
+                    >
+                      <option value="all">Todos os Atletas</option>
+                      {allAthletes.map(a => (
+                        <option key={a.id} value={a.id}>{a.full_name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Frequência (Configuração)</label>
+                    <select
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 outline-none text-slate-800 dark:text-white"
+                      value={newMessageRecado.frequency}
+                      onChange={(e) => setNewMessageRecado({...newMessageRecado, frequency: e.target.value})}
+                    >
+                      <option value="once">Enviar uma vez</option>
+                      <option value="daily">Todos os dias</option>
+                      <option value="weekly">Toda semana</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Mensagem</label>
+                    <textarea
+                      required
+                      placeholder="Escreva a mensagem..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 outline-none text-slate-800 dark:text-white h-32 resize-none"
+                      value={newMessageRecado.text}
+                      onChange={(e) => setNewMessageRecado({...newMessageRecado, text: e.target.value})}
+                    />
+                  </div>
+
+                  <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl transition flex justify-center items-center gap-2">
+                    <Send size={18} />
+                    Enviar Recado
+                  </button>
+                </form>
+              </div>
+
+              {/* Histórico */}
+              <div className="lg:col-span-2">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Histórico de Recados</h3>
+                
+                {allMessages.length === 0 ? (
+                  <div className="bg-white dark:bg-slate-900 p-12 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                    <MessageSquare size={48} className="mx-auto text-slate-300 mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum recado enviado ainda.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Unique messages grouped heuristically by content/date to show a cleaner broadcast view */}
+                    {Array.from(new Map(allMessages.map(m => [m.text.substring(0, 50) + new Date(m.created_at).toDateString(), m])).values()).map((msg: any) => {
+                       // Count how many athletes received a similar message on that day
+                       const recipientsCount = allMessages.filter(m => m.text === msg.text && new Date(m.created_at).toDateString() === new Date(msg.created_at).toDateString()).length;
+                       
+                       // Find views by checking access logs after the message date
+                       const messageDate = new Date(msg.created_at).getTime();
+                       const viewCount = accessLogs.filter(log => new Date(log.date).getTime() >= messageDate).reduce((acc, log) => {
+                         acc.add(log.user_id);
+                         return acc;
+                       }, new Set()).size;
+
+                       return (
+                        <div key={msg.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">
+                              {new Date(msg.created_at).toLocaleString('pt-BR')}
+                            </span>
+                            <div className="flex gap-2">
+                              <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold">
+                                Envios: {recipientsCount}
+                              </span>
+                              <span className="text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                <Eye size={10} />
+                                Visus: {viewCount}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-sm text-slate-700 dark:text-slate-300">{msg.text}</p>
+                          <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center gap-2">
+                            <div className="w-5 h-5 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 text-[10px]">
+                              {msg.profiles?.full_name?.charAt(0) || 'A'}
+                            </div>
+                            <span className="text-xs text-slate-500">Por {msg.profiles?.full_name || 'Admin'}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -915,26 +1195,35 @@ export default function AdminDashboard() {
             <form onSubmit={handleCreateAppointment} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Atleta</label>
-                <select 
+                <Select
                   required
-                  value={newAppointment.athleteId}
-                  onChange={e => setNewAppointment({...newAppointment, athleteId: e.target.value})}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                >
-                  <option value="">Selecione um atleta...</option>
-                  {allAthletes.map(a => (
-                    <option key={a.id} value={a.id}>{a.full_name}</option>
-                  ))}
-                </select>
+                  placeholder="Busque o atleta..."
+                  value={allAthletes.map(a => ({ value: a.id, label: a.full_name })).find(opt => opt.value === newAppointment.athleteId) || null}
+                  onChange={(option: any) => setNewAppointment({ ...newAppointment, athleteId: option ? option.value : '' })}
+                  options={allAthletes.map(a => ({ value: a.id, label: a.full_name }))}
+                  className="text-sm"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      borderRadius: '0.75rem',
+                      borderColor: '#e2e8f0',
+                      padding: '2px',
+                    })
+                  }}
+                  noOptionsMessage={() => "Nenhum atleta encontrado"}
+                  isClearable
+                />
               </div>
 
               {!newAppointment.isWeekly ? (
                 <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-left-2 duration-200">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data de Início</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Data (DD.MM.AA)</label>
                     <input 
                       required 
                       type="date" 
+                      min={new Date().toISOString().split('T')[0]}
+                      max={new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                       value={newAppointment.date}
                       onChange={e => {
                         const d = new Date(e.target.value + 'T12:00:00');
@@ -952,6 +1241,7 @@ export default function AdminDashboard() {
                     <input 
                       required 
                       type="time" 
+                      step="900" /* 15 minutes increments */
                       value={newAppointment.time}
                       onChange={e => setNewAppointment({...newAppointment, time: e.target.value})}
                       className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all" 
@@ -1489,6 +1779,52 @@ export default function AdminDashboard() {
           </div>
         )}
       </AnimatePresence>
+      {/* WhatsApp Modal */}
+      <AnimatePresence>
+        {isWhatsAppModalOpen && scheduledSummary && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+                <MessageCircle className="text-green-500" />
+                Notificar Atleta
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">
+                Deseja enviar uma mensagem para <strong>{scheduledSummary.athleteName}</strong> informando sobre o agendamento?
+              </p>
+              
+              <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl mb-6 text-xs text-slate-600 dark:text-slate-300 italic border border-slate-200 dark:border-slate-700">
+                "Olá {scheduledSummary.athleteName}, acabei de fazer o seu {scheduledSummary.summaryText}. Qualquer duvida entre em contato! Obrigado Equipe ELS Power."
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setIsWhatsAppModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  Sem mensagem
+                </button>
+                <button 
+                  onClick={() => {
+                    const text = encodeURIComponent(`Olá ${scheduledSummary.athleteName}, acabei de fazer o seu ${scheduledSummary.summaryText}. Qualquer duvida entre em contato! Obrigado Equipe ELS Power.`);
+                    window.open(`https://wa.me/${scheduledSummary.athletePhone}?text=${text}`, '_blank');
+                    setIsWhatsAppModalOpen(false);
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-xl font-bold text-sm hover:bg-green-600 transition shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                >
+                  <MessageCircle size={16} />
+                  Enviar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

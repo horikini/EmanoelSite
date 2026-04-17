@@ -160,6 +160,9 @@ export default function Login() {
         if (authError.message === 'Invalid login credentials') {
           throw new Error('E-mail ou senha incorretos. Lembre-se: para novos atletas, a senha inicial é o seu telefone (apenas números).');
         }
+        if (authError.message === 'Failed to fetch') {
+           throw new Error('Sem conexão com o Supabase. Verifique as configurações de ambiente (VITE_SUPABASE_URL) nas configurações da plataforma.');
+        }
         throw authError;
       }
 

@@ -24,6 +24,7 @@ export interface MonitoringRecord {
   fatigue: number;
   hydration: string;
   status: string;
+  pain_location?: string;
 }
 
 export interface Appointment {
@@ -160,7 +161,22 @@ export const supabaseService = {
       .select('*, profiles!messages_author_id_fkey(full_name)')
       .eq('athlete_id', athleteId)
       .order('created_at', { ascending: true });
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      return [];
+    }
+    return data;
+  },
+
+  async getAllMessages() {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*, profiles!messages_author_id_fkey(full_name)')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error(error);
+      return [];
+    }
     return data;
   },
 
@@ -195,6 +211,17 @@ export const supabaseService = {
       .insert([{ user_id: userId, date: today }]);
     
     if (error) console.error('Error logging access:', error);
+  },
+
+  async getAllAccessLogs() {
+    const { data, error } = await supabase
+      .from('access_logs')
+      .select('user_id, date');
+    if (error) {
+      console.error(error);
+      return [];
+    }
+    return data;
   },
 
   async getAccessLogs(userId: string) {
