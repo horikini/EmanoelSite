@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User, ChevronRight, ChevronDown, ChevronUp, Ruler, Timer, BarChart2, FileText, Target, HelpCircle, Info, Lock, Calendar, Phone, CheckCircle, Settings } from 'lucide-react';
+import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User, ChevronRight, ChevronDown, ChevronUp, Ruler, Timer, BarChart2, FileText, Target, HelpCircle, Info, Lock, Calendar, Phone, CheckCircle, Settings, ThumbsUp, Heart, Rocket, ThumbsDown } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { supabase } from '../lib/supabase';
 import { supabaseService, Profile, Appointment, Evaluation } from '../lib/supabaseService';
@@ -367,6 +367,14 @@ export default function UserDashboard() {
   const [latestEval, setLatestEval] = useState<any>(null);
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [localReactions, setLocalReactions] = useState<Record<string, string | null>>({});
+
+  const toggleReaction = (msgId: string, type: string) => {
+    setLocalReactions(prev => ({
+      ...prev,
+      [msgId]: prev[msgId] === type ? null : type
+    }));
+  };
 
   // Profile States from PatientProfile
   const [selectedEvalId, setSelectedEvalId] = useState<string>('');
@@ -639,24 +647,22 @@ export default function UserDashboard() {
       {/* Header */}
       <header className="bg-slate-900 dark:bg-slate-900 text-white p-2 sm:p-3 sticky top-0 z-10 shadow-md flex justify-between items-center h-12 sm:h-14">
         <div className="flex items-center gap-2">
-          <img 
-            src="/logo.png" 
-            alt="Logo" 
-            className="h-6 sm:h-8 w-auto object-contain"
-            onError={(e) => {
-              const target = e.currentTarget;
-              if (target.src.endsWith('.png')) {
-                target.src = '/logo.jpg';
-              } else if (target.src.endsWith('.jpg')) {
-                target.src = '/logo.jpeg';
-              } else {
-                target.style.display = 'none';
-                document.getElementById('fallback-user-logo')!.style.display = 'block';
-              }
-            }}
-          />
-          <div id="fallback-user-logo" className="hidden">
-            <h1 className="font-black italic text-lg sm:text-xl">ELS</h1>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center p-1.5 shadow-lg shadow-orange-500/20 overflow-hidden relative group">
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              className="w-full h-full object-contain relative z-10"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent && !parent.querySelector('.txt-logo-dash')) {
+                  const txt = document.createElement('span');
+                  txt.className = 'txt-logo-dash text-white font-black text-[8px] leading-tight text-center';
+                  txt.innerText = 'ELS';
+                  parent.appendChild(txt);
+                }
+              }}
+            />
           </div>
           <p className="text-[10px] sm:text-xs text-slate-400 border-l border-slate-700 pl-2 ml-1 font-bold uppercase tracking-widest leading-none">Monitoramento</p>
         </div>
@@ -735,18 +741,47 @@ export default function UserDashboard() {
           </div>
         </AccordionSection>
 
-        {/* 3. Mural de Recados */}
+        {/* 3. Recados */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="text-orange-500" size={18} />
-            <h3 className="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wider">Mural de Recados</h3>
+            <h3 className="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wider">Recados</h3>
           </div>
           <div className="space-y-3">
             {messages.length > 0 ? (
               messages.map(msg => (
                 <div key={msg.id} className="bg-orange-50 dark:bg-orange-900/10 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/30 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-orange-500" />
-                  <p className="text-sm text-slate-700 dark:text-slate-300 mb-2 leading-relaxed font-medium">{msg.text}</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 mb-2 leading-relaxed font-medium">{supabaseService.cleanMessageText(msg.text)}</p>
+                  
+                  {/* Reações */}
+                  <div className="flex gap-2 mb-3">
+                    <button 
+                      onClick={() => toggleReaction(msg.id, 'like')}
+                      className={`p-1.5 rounded-lg transition-all active:scale-95 border ${localReactions[msg.id] === 'like' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 border-blue-200 dark:border-blue-800' : 'bg-white/50 dark:bg-slate-800/50 text-slate-400 hover:text-blue-500 hover:bg-white dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800'}`}
+                    >
+                      <ThumbsUp size={14} className={localReactions[msg.id] === 'like' ? 'fill-current' : ''} />
+                    </button>
+                    <button 
+                      onClick={() => toggleReaction(msg.id, 'heart')}
+                      className={`p-1.5 rounded-lg transition-all active:scale-95 border ${localReactions[msg.id] === 'heart' ? 'bg-red-100 dark:bg-red-900/30 text-red-500 border-red-200 dark:border-red-800' : 'bg-white/50 dark:bg-slate-800/50 text-slate-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800'}`}
+                    >
+                      <Heart size={14} className={localReactions[msg.id] === 'heart' ? 'fill-current' : ''} />
+                    </button>
+                    <button 
+                      onClick={() => toggleReaction(msg.id, 'rocket')}
+                      className={`p-1.5 rounded-lg transition-all active:scale-95 border ${localReactions[msg.id] === 'rocket' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-500 border-orange-200 dark:border-orange-800' : 'bg-white/50 dark:bg-slate-800/50 text-slate-400 hover:text-orange-500 hover:bg-white dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800'}`}
+                    >
+                      <Rocket size={14} className={localReactions[msg.id] === 'rocket' ? 'fill-current' : ''} />
+                    </button>
+                    <button 
+                      onClick={() => toggleReaction(msg.id, 'dislike')}
+                      className={`p-1.5 rounded-lg transition-all active:scale-95 border ${localReactions[msg.id] === 'dislike' ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-200 border-slate-300 dark:border-slate-600' : 'bg-white/50 dark:bg-slate-800/50 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800'}`}
+                    >
+                      <ThumbsDown size={14} className={localReactions[msg.id] === 'dislike' ? 'fill-current' : ''} />
+                    </button>
+                  </div>
+
                   <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                     <span>{msg.author}</span>
                     <span>{new Date(msg.date).toLocaleDateString('pt-BR')}</span>
@@ -985,7 +1020,7 @@ export default function UserDashboard() {
           }
         >
           <div className="w-full mt-4" style={{ height: '260px', minHeight: '260px' }}>
-            {openSections.progresso && (
+            {openSections.acompanhamento && (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={getChartData()} margin={{ top: 30, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />

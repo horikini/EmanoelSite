@@ -88,53 +88,68 @@ export default function Landing() {
       </div>
 
       {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-50 p-4 flex flex-col items-center gap-6 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent pb-12">
-        <div className="flex flex-col items-center gap-4 mt-2">
-          <div className="flex items-center justify-center">
+      <header className="absolute top-0 left-0 right-0 z-50 p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          {/* Logo Container */}
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-2.5 shadow-[0_0_20px_rgba(249,115,22,0.3)] flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+              <motion.div 
+                className="absolute inset-0 bg-white/20"
+                animate={{ 
+                  x: ['-100%', '200%'],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+              />
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="w-full h-full object-contain relative z-10"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent && !parent.querySelector('.txt-logo')) {
+                    const txt = document.createElement('span');
+                    txt.className = 'txt-logo text-white font-black text-xs sm:text-sm tracking-tighter leading-none text-center relative z-10';
+                    txt.innerText = 'ELS POWER';
+                    parent.appendChild(txt);
+                  }
+                }}
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white font-black text-xl italic tracking-tighter leading-none group-hover:text-orange-500 transition-colors">ELS POWER</span>
+              <span className="text-orange-500 text-[10px] font-bold uppercase tracking-[0.2em] leading-none mt-1">Football Club</span>
+            </div>
+          </Link>
+
+          {/* Nav Right */}
+          <div className="flex items-center gap-3">
             <Link
               to={session ? (localStorage.getItem('userRole') === 'admin' ? "/admin" : "/dashboard") : "/login"}
-              className="text-slate-300 hover:text-white px-6 py-2 rounded-full text-sm font-medium transition-colors border border-slate-800 hover:border-slate-600 hover:bg-slate-800/50 backdrop-blur-sm"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 px-6 py-2 rounded-full text-sm font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-lg"
             >
-              Login
+              {session ? 'Dashboard' : 'Entrar'}
             </Link>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center w-full">
-          <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 p-5 rounded-[2rem] shadow-[0_0_50px_rgba(249,115,22,0.15)] flex items-center justify-center relative overflow-hidden group">
-            <motion.div 
-              className="absolute inset-0 bg-orange-500/10"
-              animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.6, 0.3]
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-            <img 
-              src="/logo.png" 
-              alt="ELS POWER Logo" 
-              className="h-28 md:h-36 w-auto object-contain drop-shadow-2xl relative z-10"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-56 pb-20 px-4 min-h-[90vh] flex flex-col justify-center overflow-hidden">
+      <section className="relative pt-48 pb-20 px-4 min-h-[90vh] flex flex-col justify-center overflow-hidden">
         {/* Background Image & Overlay */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 bg-slate-950">
           <img
             src="https://images.unsplash.com/photo-1518605368461-1e1252220a4c?q=80&w=2000&auto=format&fit=crop"
             alt="Soccer Training"
             className="w-full h-full object-cover opacity-30"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-transparent to-transparent opacity-80" />
@@ -640,26 +655,53 @@ export default function Landing() {
       </section>
       
       {/* Footer */}
-      <footer className="relative z-10 bg-slate-950/80 backdrop-blur-md text-center border-t border-slate-900">
-        {/* Fita Branca com Logo */}
-        <div className="w-full bg-white py-4 flex justify-center items-center shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-          <img 
-            src="/logo.png" 
-            alt="ELS POWER Logo" 
-            className="h-12 w-auto object-contain"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        </div>
-        
-        <div className="py-10 px-4">
-          <div className="space-y-2 mb-6 text-slate-400 text-sm">
-            <p className="font-bold text-slate-200 uppercase tracking-widest">Barretos - SP</p>
-            <p>Atendimento Online</p>
-            <p>Acompanhamento Virtual</p>
+      <footer className="relative z-10 bg-slate-950 text-center border-t border-slate-900">
+        <div className="py-12 px-4 max-w-7xl mx-auto">
+          {/* Logo in Footer */}
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-3 shadow-xl">
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent && !parent.querySelector('.txt-logo-footer')) {
+                    const txt = document.createElement('span');
+                    txt.className = 'txt-logo-footer text-black font-black text-[10px] leading-tight text-center';
+                    txt.innerText = 'ELS POWER';
+                    parent.appendChild(txt);
+                  }
+                }}
+              />
+            </div>
+            <h3 className="text-xl font-black italic tracking-tighter">ELS POWER</h3>
           </div>
-          <p className="text-slate-600 text-xs">© {new Date().getFullYear()} ELS POWER Football Club. Todos os direitos reservados.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 text-slate-400 text-sm">
+            <div className="space-y-2">
+              <h4 className="text-white font-bold uppercase tracking-widest text-xs mb-3">Localização</h4>
+              <p>Barretos - SP</p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-white font-bold uppercase tracking-widest text-xs mb-3">Serviços</h4>
+              <p>Atendimento Presencial</p>
+              <p>Acompanhamento Online</p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-white font-bold uppercase tracking-widest text-xs mb-3">Contato</h4>
+              <p>WhatsApp: (77) 99146-3640</p>
+            </div>
+          </div>
+          
+          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-slate-600 text-[10px]">© {new Date().getFullYear()} ELS POWER Football Club. Todos os direitos reservados.</p>
+            <div className="flex gap-6 text-[10px] text-slate-500">
+              <a href="#" className="hover:text-white transition-colors">Privacidade</a>
+              <a href="#" className="hover:text-white transition-colors">Termos</a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

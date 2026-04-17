@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, Phone, Activity, Ruler, Timer, Calendar, HelpCircle, Lock, Unlock, Plus, BarChart2, FileText, Target, ChevronDown, ChevronUp, MoreHorizontal, Camera, Edit2, Save, X, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User, Phone, Activity, Ruler, Timer, Calendar, HelpCircle, Lock, Unlock, Plus, BarChart2, FileText, Target, ChevronDown, ChevronUp, MoreHorizontal, Camera, Edit2, Save, X, CheckCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -226,6 +226,8 @@ export default function PatientProfile() {
   const isUser = localStorage.getItem('userRole') === 'athlete' || localStorage.getItem('userRole') === 'user';
   const [loading, setLoading] = useState(true);
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [evaluationType, setEvaluationType] = useState<'physical' | 'specific' | null>(null);
   const [evalForm, setEvalForm] = useState<any>({
     date: new Date().toISOString().split('T')[0],
@@ -465,6 +467,22 @@ export default function PatientProfile() {
     }
   };
 
+  const handleDeleteAthlete = async () => {
+    if (!patient?.id) return;
+    setIsDeleting(true);
+    try {
+      await supabaseService.deleteProfile(String(patient.id));
+      alert('Atleta excluído com sucesso.');
+      navigate('/admin');
+    } catch (error) {
+      console.error('Error deleting athlete:', error);
+      alert('Erro ao excluir atleta.');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
+
   const toggleChartDate = (evalId: string) => {
     setSelectedDates(prev => 
       prev.includes(evalId) ? prev.filter(id => id !== evalId) : [...prev, evalId]
@@ -565,17 +583,31 @@ export default function PatientProfile() {
           onToggle={() => toggleSection('perfil')}
           rightAction={
             (isUser || isAdmin) && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isEditingProfile) handleSaveProfile();
-                  else setIsEditingProfile(true);
-                }}
-                className="flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-              >
-                {isEditingProfile ? <Save size={12} /> : <Edit2 size={12} />}
-                {isEditingProfile ? 'Salvar' : 'Editar'}
-              </button>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDeleteModalOpen(true);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-[10px] font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition border border-red-200 dark:border-red-900/50"
+                  >
+                    <Trash2 size={12} />
+                    Excluir Atleta
+                  </button>
+                )}
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isEditingProfile) handleSaveProfile();
+                    else setIsEditingProfile(true);
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  {isEditingProfile ? <Save size={12} /> : <Edit2 size={12} />}
+                  {isEditingProfile ? 'Salvar' : 'Editar'}
+                </button>
+              </div>
             )
           }
         >
@@ -659,7 +691,7 @@ export default function PatientProfile() {
 
         {/* 1.5. MURAL DE RECADOS */}
         <AccordionSection 
-          title="Mural de Recados" 
+          title="Recados" 
           icon={FileText} 
           isOpen={openSections.recados} 
           onToggle={() => toggleSection('recados')}
@@ -713,7 +745,7 @@ export default function PatientProfile() {
               ) : (
                 messages.map(msg => (
                   <div key={msg.id} className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-xl border border-orange-100 dark:border-orange-900/30">
-                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">{msg.text}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">{supabaseService.cleanMessageText(msg.text)}</p>
                     <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase">
                       <span>{msg.author}</span>
                       <span>{new Date(msg.date).toLocaleDateString('pt-BR')}</span>
@@ -1212,7 +1244,7 @@ export default function PatientProfile() {
 
       </main>
 
-      {/* Evaluation Modal */}
+      {/* Modal de Avaliação */}
       <AnimatePresence>
         {isEvaluationModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
@@ -1392,6 +1424,56 @@ export default function PatientProfile() {
           </div>
         )}
       </AnimatePresence>
+        <AnimatePresence>
+          {isDeleteModalOpen && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800"
+              >
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-red-50 dark:border-red-900/20">
+                  <AlertTriangle size={32} />
+                </div>
+                
+                <h3 className="text-xl font-black text-slate-800 dark:text-white text-center mb-2">Excluir Atleta?</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                  Esta ação é irreversível. Todos os dados de monitoramento, agendamentos e avaliações de **{patient?.name}** serão apagados permanentemente.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    disabled={isDeleting}
+                    className="py-3 px-4 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-50"
+                  >
+                    Voltar
+                  </button>
+                  <button 
+                    onClick={handleDeleteAthlete}
+                    disabled={isDeleting}
+                    className="py-3 px-4 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isDeleting ? (
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                    {isDeleting ? 'Excluindo...' : 'Sim, Excluir'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
     </div>
   );
 }

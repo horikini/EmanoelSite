@@ -61,8 +61,14 @@ export default function AdminDashboard() {
   // Messages Tab State
   const [allMessages, setAllMessages] = useState<any[]>([]);
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
-  const [newMessageRecado, setNewMessageRecado] = useState({
-    recipient: 'all',
+  const [newMessageRecado, setNewMessageRecado] = useState<{
+    recipients: string[];
+    sendToAll: boolean;
+    frequency: string;
+    text: string;
+  }>({
+    recipients: [],
+    sendToAll: true,
     frequency: 'once', 
     text: ''
   });
@@ -92,6 +98,8 @@ export default function AdminDashboard() {
   // WhatsApp notification State
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [scheduledSummary, setScheduledSummary] = useState<any>(null);
+  const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -259,9 +267,12 @@ export default function AdminDashboard() {
 
   const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCreatingAppointment) return;
+
     const athlete = allAthletes.find(a => String(a.id) === String(newAppointment.athleteId));
     if (!athlete) return;
 
+    setIsCreatingAppointment(true);
     const iterations = newAppointment.isWeekly ? newAppointment.weeksCount : 1;
     const daysToSchedule = newAppointment.isWeekly ? newAppointment.selectedDays : [new Date(newAppointment.date + 'T12:00:00').getDay().toString()];
 
@@ -335,6 +346,8 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error creating appointments:', error);
       alert('Erro ao criar agendamentos.');
+    } finally {
+      setIsCreatingAppointment(false);
     }
   };
 
@@ -601,25 +614,26 @@ export default function AdminDashboard() {
 
       <main className="p-3 md:p-8 max-w-7xl mx-auto">
         {/* Tabs */}
-        <div className="flex flex-wrap gap-1 mb-6 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl w-fit">
+        <div className="grid grid-cols-3 gap-1 mb-8 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-2xl w-full sm:w-fit sm:flex sm:items-center">
           <button 
             onClick={() => setActiveTab('monitoring')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'monitoring' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            className={`px-1 py-3 rounded-xl text-[10px] sm:text-xs sm:px-4 font-black transition-all text-center uppercase tracking-tighter sm:tracking-normal ${activeTab === 'monitoring' ? 'bg-white dark:bg-slate-800 text-orange-500 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
-            Monitoramento
+            <span className="sm:hidden">Monitora</span>
+            <span className="hidden sm:inline">Monitoramento</span>
           </button>
           <button 
             onClick={() => setActiveTab('scheduling')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'scheduling' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            className={`px-1 py-3 rounded-xl text-[10px] sm:text-xs sm:px-4 font-black transition-all text-center uppercase tracking-tighter sm:tracking-normal ${activeTab === 'scheduling' ? 'bg-white dark:bg-slate-800 text-orange-500 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
-            Agendamento
+            <span className="sm:hidden">Agenda</span>
+            <span className="hidden sm:inline">Agendamento</span>
           </button>
           <button 
             onClick={() => setActiveTab('messages')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'messages' ? 'bg-white dark:bg-slate-900 text-orange-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            className={`px-1 py-3 rounded-xl text-[10px] sm:text-xs sm:px-4 font-black transition-all flex items-center justify-center gap-1 uppercase tracking-tighter sm:tracking-normal ${activeTab === 'messages' ? 'bg-white dark:bg-slate-800 text-orange-500 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
-            <MessageSquare size={14} />
-            Mural de Recados
+            Recados
           </button>
         </div>
 
@@ -1018,7 +1032,7 @@ export default function AdminDashboard() {
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Mural de Recados</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Recados</h2>
                 <p className="text-slate-500 dark:text-slate-400 text-sm">Envie mensagens globais ou diretas para os atletas</p>
               </div>
             </div>
@@ -1033,43 +1047,123 @@ export default function AdminDashboard() {
                 <form 
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    if (!newMessageRecado.text) return;
+                    if (!newMessageRecado.text || isSendingMessage) return;
+                    if (!newMessageRecado.sendToAll && newMessageRecado.recipients.length === 0) {
+                      alert('Selecione ao menos um atleta ou marque "Todos os Atletas".');
+                      return;
+                    }
+
+                    setIsSendingMessage(true);
                     try {
-                      // Se for 'all', envia pra todos
                       const adminId = adminProfile?.id || '';
-                      if (newMessageRecado.recipient === 'all') {
-                        const promises = allAthletes.map(athlete => 
-                          supabaseService.addMessage(athlete.id, adminId, `[Mural - ${newMessageRecado.frequency}] ${newMessageRecado.text}`)
-                        );
-                        await Promise.all(promises);
+                      
+                      let athleteIdsToSend = [];
+                      if (newMessageRecado.sendToAll) {
+                        athleteIdsToSend = allAthletes.map(a => a.id);
                       } else {
-                        await supabaseService.addMessage(newMessageRecado.recipient, adminId, `[Mural - ${newMessageRecado.frequency}] ${newMessageRecado.text}`);
+                        athleteIdsToSend = newMessageRecado.recipients;
                       }
+
+                      const promises = athleteIdsToSend.map(id => 
+                        supabaseService.addMessage(id, adminId, newMessageRecado.text)
+                      );
+                      
+                      await Promise.all(promises);
                       
                       alert('Recado enviado com sucesso!');
                       const messagesData = await supabaseService.getAllMessages();
                       if (messagesData) setAllMessages(messagesData);
                       
-                      setNewMessageRecado({ recipient: 'all', frequency: 'once', text: '' });
+                      setNewMessageRecado({ recipients: [], sendToAll: true, frequency: 'once', text: '' });
                     } catch (error) {
                       console.error(error);
                       alert('Erro ao enviar recado.');
+                    } finally {
+                      setIsSendingMessage(false);
                     }
                   }} 
                   className="space-y-4"
                 >
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Destinatário</label>
-                    <select
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 outline-none text-slate-800 dark:text-white"
-                      value={newMessageRecado.recipient}
-                      onChange={(e) => setNewMessageRecado({...newMessageRecado, recipient: e.target.value})}
-                    >
-                      <option value="all">Todos os Atletas</option>
-                      {allAthletes.map(a => (
-                        <option key={a.id} value={a.id}>{a.full_name}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input 
+                        type="checkbox" 
+                        id="sendToAll"
+                        className="w-4 h-4 accent-orange-500 rounded border-slate-300"
+                        checked={newMessageRecado.sendToAll}
+                        onChange={(e) => setNewMessageRecado({...newMessageRecado, sendToAll: e.target.checked})}
+                      />
+                      <label htmlFor="sendToAll" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        Enviar para Todos os Atletas
+                      </label>
+                    </div>
+
+                    {!newMessageRecado.sendToAll && (
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Selecionar Atletas
+                        </label>
+                        
+                        {/* Tags de Atletas Selecionados */}
+                        {newMessageRecado.recipients.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {newMessageRecado.recipients.map(id => {
+                              const athlete = allAthletes.find(a => String(a.id) === String(id));
+                              return (
+                                <div key={id} className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                                    {athlete?.full_name || 'Desconhecido'}
+                                  </span>
+                                  <button 
+                                    type="button"
+                                    onClick={() => setNewMessageRecado({
+                                      ...newMessageRecado, 
+                                      recipients: newMessageRecado.recipients.filter(r => r !== id)
+                                    })}
+                                    className="text-slate-400 hover:text-red-500 transition"
+                                  >
+                                    <X size={10} />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <Select
+                          isMulti
+                          options={allAthletes.map(a => ({ value: a.id, label: a.full_name }))}
+                          value={allAthletes
+                            .filter(a => newMessageRecado.recipients.includes(a.id))
+                            .map(a => ({ value: a.id, label: a.full_name }))
+                          }
+                          onChange={(selected: any) => {
+                            setNewMessageRecado({
+                              ...newMessageRecado,
+                              recipients: selected ? selected.map((s: any) => s.value) : []
+                            });
+                          }}
+                          placeholder="Escolha os atletas..."
+                          className="react-select-container"
+                          classNamePrefix="react-select"
+                          styles={{
+                            control: (base) => ({
+                              ...base,
+                              backgroundColor: 'transparent',
+                              borderColor: 'rgb(226, 232, 240)',
+                              borderRadius: '0.75rem',
+                              padding: '0.25rem',
+                              fontSize: '0.875rem'
+                            }),
+                            menu: (base) => ({
+                              ...base,
+                              backgroundColor: 'white',
+                              zIndex: 50
+                            })
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -1096,9 +1190,22 @@ export default function AdminDashboard() {
                     />
                   </div>
 
-                  <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl transition flex justify-center items-center gap-2">
-                    <Send size={18} />
-                    Enviar Recado
+                  <button 
+                    type="submit" 
+                    disabled={isSendingMessage}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl transition flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSendingMessage ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <span>Enviando...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Send size={18} />
+                        Enviar Recado
+                      </>
+                    )}
                   </button>
                 </form>
               </div>
@@ -1142,7 +1249,7 @@ export default function AdminDashboard() {
                               </span>
                             </div>
                           </div>
-                          <p className="text-sm text-slate-700 dark:text-slate-300">{msg.text}</p>
+                          <p className="text-sm text-slate-700 dark:text-slate-300">{supabaseService.cleanMessageText(msg.text)}</p>
                           <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center gap-2">
                             <div className="w-5 h-5 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 text-[10px]">
                               {msg.profiles?.full_name?.charAt(0) || 'A'}
@@ -1311,9 +1418,10 @@ export default function AdminDashboard() {
               )}
               <button 
                 type="submit" 
-                className="w-full bg-orange-500 text-white font-bold py-2.5 text-sm rounded-xl hover:bg-orange-600 active:scale-[0.98] transition-all mt-6 shadow-lg shadow-orange-500/20"
+                disabled={isCreatingAppointment}
+                className="w-full bg-orange-500 text-white font-bold py-2.5 text-sm rounded-xl hover:bg-orange-600 active:scale-[0.98] transition-all mt-6 shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Agendar
+                {isCreatingAppointment ? 'Agendando...' : 'Agendar'}
               </button>
             </form>
           </div>

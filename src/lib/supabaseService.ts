@@ -219,6 +219,11 @@ export const supabaseService = {
     }
   },
 
+  cleanMessageText(text: string) {
+    if (!text) return '';
+    return text.replace(/^\[Mural - \w+\] /, '');
+  },
+
   // Access Logs
   async logAccess(userId: string) {
     try {
@@ -285,5 +290,19 @@ export const supabaseService = {
     } catch (err) {
       return [];
     }
+  },
+
+  async deleteProfile(userId: string) {
+    // Delete related data first (just in case cascade isn't set)
+    await supabase.from('monitoring').delete().eq('athlete_id', userId);
+    await supabase.from('evaluations').delete().eq('athlete_id', userId);
+    await supabase.from('appointments').delete().eq('athlete_id', userId);
+    await supabase.from('messages').delete().eq('athlete_id', userId);
+    await supabase.from('access_logs').delete().eq('user_id', userId);
+    
+    // Finally delete the profile
+    const { error } = await supabase.from('profiles').delete().eq('id', userId);
+    if (error) throw error;
+    return true;
   }
 };

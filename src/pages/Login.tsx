@@ -220,14 +220,23 @@ export default function Login() {
         </button>
 
         <div className="flex flex-col items-center mb-8 mt-2">
-          <img 
-            src="/logo.png" 
-            alt="ELS POWER Logo" 
-            className="h-24 w-auto object-contain mb-4"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center p-3 shadow-xl mb-4 group overflow-hidden">
+            <img 
+              src="/logo.png" 
+              alt="ELS POWER Logo" 
+              className="w-full h-full object-contain relative z-10"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent && !parent.querySelector('.txt-logo-login')) {
+                  const txt = document.createElement('span');
+                  txt.className = 'txt-logo-login text-white font-black text-[10px] leading-tight text-center';
+                  txt.innerText = 'ELS POWER';
+                  parent.appendChild(txt);
+                }
+              }}
+            />
+          </div>
           <h1 className="text-2xl font-normal text-gray-900 dark:text-white mb-2">Fazer login</h1>
           <p className="text-gray-600 dark:text-slate-400 text-sm">Use sua Conta ELS POWER</p>
         </div>
