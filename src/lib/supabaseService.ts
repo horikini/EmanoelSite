@@ -156,80 +156,134 @@ export const supabaseService = {
 
   // Messages
   async getMessages(athleteId: string) {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*, profiles!messages_author_id_fkey(full_name)')
-      .eq('athlete_id', athleteId)
-      .order('created_at', { ascending: true });
-    if (error) {
-      console.error(error);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*, profiles!messages_author_id_fkey(full_name)')
+        .eq('athlete_id', athleteId)
+        .order('created_at', { ascending: true });
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.warn('Tabela "messages" não encontrada. Por favor, execute o script SQL no Supabase.');
+          return [];
+        }
+        throw error;
+      }
+      return data;
+    } catch (err) {
+      console.error('Error loading messages:', err);
       return [];
     }
-    return data;
   },
 
   async getAllMessages() {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*, profiles!messages_author_id_fkey(full_name)')
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error(error);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*, profiles!messages_author_id_fkey(full_name)')
+        .order('created_at', { ascending: false });
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.warn('Tabela "messages" não encontrada. Por favor, execute o script SQL no Supabase.');
+          return [];
+        }
+        throw error;
+      }
+      return data;
+    } catch (err) {
+      console.error('Error loading all messages:', err);
       return [];
     }
-    return data;
   },
 
   async addMessage(athleteId: string, authorId: string, text: string) {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert([{
-        athlete_id: athleteId,
-        author_id: authorId,
-        text: text
-      }]);
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert([{
+          athlete_id: athleteId,
+          author_id: authorId,
+          text: text
+        }]);
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.error('Tabela "messages" não encontrada. Não foi possível enviar a mensagem.');
+          return null;
+        }
+        throw error;
+      }
+      return data;
+    } catch (err) {
+      console.error('Error adding message:', err);
+      return null;
+    }
   },
 
   // Access Logs
   async logAccess(userId: string) {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Check if already logged today
-    const { data: existing } = await supabase
-      .from('access_logs')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('date', today)
-      .limit(1);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if already logged today
+      const { data: existing, error: checkError } = await supabase
+        .from('access_logs')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .limit(1);
 
-    if (existing && existing.length > 0) return;
+      if (checkError) {
+        if (checkError.code === 'PGRST205') {
+          // Table missing, silent ignore for logging
+          return;
+        }
+        throw checkError;
+      }
 
-    const { error } = await supabase
-      .from('access_logs')
-      .insert([{ user_id: userId, date: today }]);
-    
-    if (error) console.error('Error logging access:', error);
+      if (existing && existing.length > 0) return;
+
+      const { error: insertError } = await supabase
+        .from('access_logs')
+        .insert([{ user_id: userId, date: today }]);
+      
+      if (insertError) {
+        if (insertError.code !== 'PGRST205') {
+          console.error('Error logging access:', insertError);
+        }
+      }
+    } catch (err) {
+      // Slient fail for access logs to not disrupt user experience
+    }
   },
 
   async getAllAccessLogs() {
-    const { data, error } = await supabase
-      .from('access_logs')
-      .select('user_id, date');
-    if (error) {
-      console.error(error);
+    try {
+      const { data, error } = await supabase
+        .from('access_logs')
+        .select('user_id, date');
+      if (error) {
+        if (error.code === 'PGRST205') return [];
+        throw error;
+      }
+      return data;
+    } catch (err) {
       return [];
     }
-    return data;
   },
 
   async getAccessLogs(userId: string) {
-    const { data, error } = await supabase
-      .from('access_logs')
-      .select('date')
-      .eq('user_id', userId);
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('access_logs')
+        .select('date')
+        .eq('user_id', userId);
+      if (error) {
+        if (error.code === 'PGRST205') return [];
+        throw error;
+      }
+      return data;
+    } catch (err) {
+      return [];
+    }
   }
 };

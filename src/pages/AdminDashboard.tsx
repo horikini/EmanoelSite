@@ -1298,7 +1298,7 @@ export default function AdminDashboard() {
                       <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
                         <input 
                           type="range" 
-                          min="2" max="12" 
+                          min="2" max="6" 
                           value={newAppointment.weeksCount}
                           onChange={e => setNewAppointment({...newAppointment, weeksCount: Number(e.target.value)})}
                           className="flex-1 accent-orange-500"

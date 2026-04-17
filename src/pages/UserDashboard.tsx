@@ -92,11 +92,11 @@ function AccordionSection({ title, icon: Icon, isOpen, onToggle, children, right
   );
 }
 
-function TestRow({ label, value, info, isLiberated, key }: any) {
+function TestRow({ label, value, info, isLiberated }: any) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
-    <div key={key} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
       <div className="flex items-center gap-2">
         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</span>
         {isLiberated && (
@@ -189,9 +189,9 @@ function ScoreBar({ value, onChange, colorClass, label }: { value: number, onCha
             onClick={() => onChange(i)}
             className={`flex-1 rounded-md transition-all duration-300 ${
               value === i 
-                ? colorClass + ' shadow-lg shadow-orange-500/20' 
+                ? colorClass + ' shadow-lg ' + (colorClass.includes('orange') ? 'shadow-orange-500/20' : 'shadow-blue-500/20')
                 : (value !== null && value !== 0 && i <= value)
-                  ? colorClass.replace('bg-', 'bg-') + ' opacity-40'
+                  ? colorClass + '/40'
                   : 'bg-slate-100 dark:bg-slate-800'
             }`}
             style={{ 
@@ -984,47 +984,49 @@ export default function UserDashboard() {
             </select>
           }
         >
-          <div className="h-64 w-full mt-4" style={{ minHeight: '256px', width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={getChartData()} margin={{ top: 30, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
-                  domain={['auto', 'auto']}
-                />
-                <RechartsTooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-slate-900 text-white p-2 rounded-lg shadow-xl text-[10px] font-bold">
-                          {payload[0].value} {METRIC_OPTIONS.find(o => o.value === chartMetric)?.label}
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {getChartData().map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === getChartData().length - 1 ? '#f97316' : '#cbd5e1'} />
-                  ))}
-                  <LabelList 
-                    dataKey="value" 
-                    position="top" 
-                    style={{ fontSize: 10, fontWeight: 800, fill: '#64748b' }} 
+          <div className="w-full mt-4" style={{ height: '260px', minHeight: '260px' }}>
+            {openSections.progresso && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={getChartData()} margin={{ top: 30, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
                   />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }}
+                    domain={['auto', 'auto']}
+                  />
+                  <RechartsTooltip 
+                    cursor={{ fill: '#f8fafc' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-slate-900 text-white p-2 rounded-lg shadow-xl text-[10px] font-bold">
+                            {payload[0].value} {METRIC_OPTIONS.find(o => o.value === chartMetric)?.label}
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {getChartData().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === getChartData().length - 1 ? '#f97316' : '#cbd5e1'} />
+                    ))}
+                    <LabelList 
+                      dataKey="value" 
+                      position="top" 
+                      style={{ fontSize: 10, fontWeight: 800, fill: '#64748b' }} 
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </AccordionSection>
 
