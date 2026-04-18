@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogOut, MessageCircle, Search, Filter, AlertTriangle, CheckCircle, Activity, User, Plus, X, Calendar as CalendarIcon, Clock, Check, Bell, Ruler, ArrowLeft, ChevronLeft, ChevronRight, Eye, MessageSquare, Send } from 'lucide-react';
+import { LogOut, MessageCircle, Search, Filter, AlertTriangle, CheckCircle, Activity, User, Plus, X, Calendar as CalendarIcon, Clock, Check, Bell, Ruler, ArrowLeft, ChevronLeft, ChevronRight, Eye, MessageSquare, Send, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import Select from 'react-select';
@@ -97,9 +97,12 @@ export default function AdminDashboard() {
   
   // WhatsApp notification State
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [isRegisterWhatsAppModalOpen, setIsRegisterWhatsAppModalOpen] = useState(false);
+  const [registeredAthleteData, setRegisteredAthleteData] = useState<{name: string, email: string, phone: string} | null>(null);
   const [scheduledSummary, setScheduledSummary] = useState<any>(null);
   const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [expandedAthletes, setExpandedAthletes] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -458,7 +461,12 @@ export default function AdminDashboard() {
             throw new Error(result.error || 'Erro ao criar atleta');
           }
 
-          alert('Atleta criado com sucesso! A senha provisória é o telefone (apenas números).');
+          setRegisteredAthleteData({
+            name: newAthlete.name,
+            email: newAthlete.email,
+            phone: newAthlete.phone
+          });
+          
           setIsModalOpen(false);
           setNewAthlete({ name: '', dob: '', email: '', phone: '', city: '', targetTraining: '', position1: '', position2: '' });
           
@@ -468,6 +476,9 @@ export default function AdminDashboard() {
             const pending = profiles.filter(p => p.status === 'pending');
             setPendingAthletes(pending);
           }
+
+          // Open WhatsApp confirmation modal
+          setIsRegisterWhatsAppModalOpen(true);
         } catch (error: any) {
           console.error('Erro ao adicionar atleta:', error);
           if (error.message === 'Failed to fetch') {
@@ -948,82 +959,114 @@ export default function AdminDashboard() {
               Agendamentos para {selectedDayContext?.toLocaleDateString('pt-BR') || 'Selecione uma data'}
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {appointments.filter(app => {
+            <div className="space-y-3">
+              {(() => {
+                const dayApps = appointments.filter(app => {
                   if(!selectedDayContext) return true;
                   const dateParts = app.date.split('-');
                   if (dateParts.length !== 3) return false;
                   const appDate = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
                   return appDate.toDateString() === selectedDayContext.toDateString();
-              }).length === 0 ? (
-                <div className="col-span-full bg-white dark:bg-slate-900 p-12 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
-                  <CalendarIcon size={48} className="mx-auto text-slate-300 mb-4" />
-                  <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum agendamento para este dia.</p>
-                </div>
-              ) : (
-                appointments.filter(app => {
-                  if(!selectedDayContext) return true;
-                  const dateParts = app.date.split('-');
-                  const appDate = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
-                  return appDate.toDateString() === selectedDayContext.toDateString();
-                }).sort((a,b) => a.time.localeCompare(b.time)).map(app => (
-                  <div key={app.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group flex flex-col gap-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
-                          {app.athleteName.charAt(0)}
-                        </div>
-                        <div className="overflow-hidden">
-                          <p className="font-bold text-xs text-slate-800 dark:text-white leading-tight truncate">{app.athleteName}</p>
-                          <span className="text-[9px] text-slate-500 font-medium truncate block">{app.type}</span>
-                        </div>
-                      </div>
-                      <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-100 dark:border-slate-800 items-center gap-1.5 shrink-0">
-                        <Clock size={12} className="text-orange-500" />
-                        <span className="text-xs font-black text-slate-700 dark:text-slate-300">{app.time}</span>
-                      </div>
+                });
+
+                if (dayApps.length === 0) {
+                  return (
+                    <div className="bg-white dark:bg-slate-900 p-12 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                      <CalendarIcon size={48} className="mx-auto text-slate-300 mb-4" />
+                      <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum agendamento para este dia.</p>
                     </div>
-                    
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
-                          app.status === 'confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          app.status === 'canceled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                        }`}>
-                          {app.status === 'confirmed' ? <Check size={8} /> : app.status === 'canceled' ? <X size={8} /> : <Clock size={8} />}
-                          {app.status === 'confirmed' ? 'Confirmado' : app.status === 'canceled' ? 'Cancelado' : 'Pendente'}
+                  );
+                }
+
+                // Group by athlete
+                const grouped = dayApps.reduce((acc, app) => {
+                  if (!acc[app.athleteId]) {
+                    acc[app.athleteId] = {
+                      athleteName: app.athleteName,
+                      athleteId: app.athleteId,
+                      items: []
+                    };
+                  }
+                  acc[app.athleteId].items.push(app);
+                  return acc;
+                }, {} as Record<string, { athleteName: string, athleteId: string | number, items: Appointment[] }>);
+
+                return Object.values(grouped).sort((a, b) => a.athleteName.localeCompare(b.athleteName)).map(group => {
+                  const isExpanded = expandedAthletes[group.athleteId];
+                  return (
+                    <div key={group.athleteId} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all">
+                      <button 
+                        onClick={() => setExpandedAthletes({ ...expandedAthletes, [group.athleteId]: !isExpanded })}
+                        className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-500 rounded-xl flex items-center justify-center font-bold text-sm">
+                            {group.athleteName.charAt(0)}
+                          </div>
+                          <div className="text-left">
+                            <p className="font-bold text-slate-800 dark:text-white">{group.athleteName}</p>
+                            <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{group.items.length} agendamento(s)</p>
+                          </div>
                         </div>
-                        {app.status === 'pending' && (
-                          <button 
-                            onClick={() => confirmAppointment(app.id)}
-                            className="bg-green-500 text-white p-1 rounded hover:bg-green-600 transition"
-                            title="Confirmar Agendamento"
-                          >
-                            <Check size={10} />
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button 
-                          onClick={() => sendAppointmentWhatsApp(app)}
-                          className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors bg-green-50 dark:bg-green-900/20 p-1.5 rounded-md"
-                          title="Enviar WhatsApp"
-                        >
-                          <MessageCircle size={12} />
-                        </button>
-                        <button 
-                          onClick={() => deleteAppointment(app.id)}
-                          className="text-slate-400 hover:text-red-500 transition-colors bg-slate-50 dark:bg-slate-800 p-1.5 rounded-md"
-                          title="Excluir Agendamento"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
+                        {isExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="p-4 pt-0 border-t border-slate-50 dark:border-slate-800/50 space-y-3 animate-in fade-in slide-in-from-top-2">
+                          <div className="pt-3 flex flex-col gap-3">
+                            {group.items.sort((a,b) => a.time.localeCompare(b.time)).map(app => (
+                              <div key={app.id} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 flex flex-col gap-2">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                      <Clock size={12} className="text-orange-500" />
+                                      <span className="text-xs font-black text-slate-700 dark:text-slate-300">{app.time}</span>
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{app.type}</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
+                                    app.status === 'confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                    app.status === 'canceled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                  }`}>
+                                    {app.status === 'confirmed' ? <Check size={8} /> : app.status === 'canceled' ? <X size={8} /> : <Clock size={8} />}
+                                    {app.status === 'confirmed' ? 'Confirmado' : app.status === 'canceled' ? 'Cancelado' : 'Pendente'}
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-700/50 pt-2 mt-1">
+                                  {app.status === 'pending' && (
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); confirmAppointment(app.id); }}
+                                      className="bg-green-500 text-white p-1.5 rounded-lg hover:bg-green-600 transition flex items-center gap-1 text-[10px] font-bold"
+                                    >
+                                      <Check size={12} />
+                                      Confirmar
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); sendAppointmentWhatsApp(app); }}
+                                    className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors bg-green-50 dark:bg-green-900/20 p-1.5 rounded-lg flex items-center gap-1 text-[10px] font-bold"
+                                  >
+                                    <MessageCircle size={12} />
+                                    WhatsApp
+                                  </button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); deleteAppointment(app.id); }}
+                                    className="text-slate-400 hover:text-red-500 transition-colors bg-slate-50 dark:bg-slate-800 p-1.5 rounded-lg flex items-center gap-1 text-[10px] font-bold"
+                                  >
+                                    <X size={12} />
+                                    Excluir
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
-              )}
+                  );
+                });
+              })()}
             </div>
           </div>
         )}
@@ -1567,7 +1610,6 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Data de Nascimento</label>
                   <input 
-                    required 
                     type="date" 
                     value={newAthlete.dob} 
                     onChange={e => setNewAthlete({...newAthlete, dob: e.target.value})} 
@@ -1599,7 +1641,6 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Cidade</label>
                   <input 
-                    required 
                     type="text" 
                     placeholder="Ex: Barretos"
                     value={newAthlete.city} 
@@ -1610,7 +1651,6 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Treinamento Alvo</label>
                   <select 
-                    required
                     value={newAthlete.targetTraining} 
                     onChange={e => setNewAthlete({...newAthlete, targetTraining: e.target.value})} 
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
@@ -1626,7 +1666,6 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Posição 1</label>
                   <select 
-                    required
                     value={newAthlete.position1} 
                     onChange={e => setNewAthlete({...newAthlete, position1: e.target.value})} 
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
@@ -1926,6 +1965,50 @@ export default function AdminDashboard() {
                 >
                   <MessageCircle size={16} />
                   Enviar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* WhatsApp Notification Modal for Registration */}
+        {isRegisterWhatsAppModalOpen && registeredAthleteData && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+                <MessageCircle className="text-green-500" size={20} />
+                Enviar mensagem com informações?
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">
+                Deseja enviar uma mensagem para <strong>{registeredAthleteData.name}</strong> com as credenciais de acesso?
+              </p>
+              
+              <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl mb-6 text-xs text-slate-600 dark:text-slate-300 italic border border-slate-200 dark:border-slate-700">
+                {`Olá ${registeredAthleteData.name}, acabei de cadastrar você na minha plataforma, é só vc entrar na tela de login usar seu e-mail: ${registeredAthleteData.email} E seu numero de telefone com DD como senha inicial! Obrigado Equipe ELS`}
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setIsRegisterWhatsAppModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  NÃO
+                </button>
+                <button 
+                  onClick={() => {
+                    const text = encodeURIComponent(`Olá ${registeredAthleteData.name}, acabei de cadastrar você na minha plataforma, é só vc entrar na tela de login usar seu e-mail: ${registeredAthleteData.email}\nE seu numero de telefone com DD como senha inicial!\n\nObrigado Equipe ELS`);
+                    window.open(`https://wa.me/${registeredAthleteData.phone.replace(/\D/g, '')}?text=${text}`, '_blank');
+                    setIsRegisterWhatsAppModalOpen(false);
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-xl font-bold text-sm hover:bg-green-600 transition shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                >
+                  <MessageCircle size={16} />
+                  SIM
                 </button>
               </div>
             </motion.div>

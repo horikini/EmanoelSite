@@ -88,58 +88,34 @@ export default function Landing() {
       </div>
 
       {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-50 p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="absolute top-0 left-0 right-0 z-50 p-4 sm:p-6 pb-0">
+        <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-6">
+          {/* Nav Right */}
+          <div className="flex items-center justify-center w-full mt-2">
+            <Link
+              to={session ? (localStorage.getItem('userRole') === 'admin' ? "/admin" : "/dashboard") : "/login"}
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 px-8 py-3 rounded-full text-base font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-lg"
+            >
+              {session ? 'Login' : 'Entrar'}
+            </Link>
+          </div>
+
           {/* Logo Container */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-2.5 shadow-[0_0_20px_rgba(249,115,22,0.3)] flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden">
-              <motion.div 
-                className="absolute inset-0 bg-white/20"
-                animate={{ 
-                  x: ['-100%', '200%'],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              />
+            <div className="relative w-28 h-28 sm:w-36 sm:h-36 transition-transform duration-300">
               <img 
                 src="/logo.png" 
                 alt="Logo" 
                 className="w-full h-full object-contain relative z-10"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent && !parent.querySelector('.txt-logo')) {
-                    const txt = document.createElement('span');
-                    txt.className = 'txt-logo text-white font-black text-xs sm:text-sm tracking-tighter leading-none text-center relative z-10';
-                    txt.innerText = 'ELS POWER';
-                    parent.appendChild(txt);
-                  }
-                }}
+                referrerPolicy="no-referrer"
               />
             </div>
-            <div className="flex flex-col">
-              <span className="text-white font-black text-xl italic tracking-tighter leading-none group-hover:text-orange-500 transition-colors">ELS POWER</span>
-              <span className="text-orange-500 text-[10px] font-bold uppercase tracking-[0.2em] leading-none mt-1">Football Club</span>
-            </div>
           </Link>
-
-          {/* Nav Right */}
-          <div className="flex items-center gap-3">
-            <Link
-              to={session ? (localStorage.getItem('userRole') === 'admin' ? "/admin" : "/dashboard") : "/login"}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/10 px-6 py-2 rounded-full text-sm font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-lg"
-            >
-              {session ? 'Dashboard' : 'Entrar'}
-            </Link>
-          </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-48 pb-20 px-4 min-h-[90vh] flex flex-col justify-center overflow-hidden">
+      <section className="relative pt-64 pb-20 px-4 min-h-[90vh] flex flex-col justify-center overflow-hidden">
         {/* Background Image & Overlay */}
         <div className="absolute inset-0 z-0 bg-slate-950">
           <img
@@ -659,24 +635,14 @@ export default function Landing() {
         <div className="py-12 px-4 max-w-7xl mx-auto">
           {/* Logo in Footer */}
           <div className="flex flex-col items-center gap-3 mb-8">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-3 shadow-xl">
+            <div className="w-20 h-20 bg-transparent flex items-center justify-center p-0">
               <img 
                 src="/logo.png" 
                 alt="Logo" 
                 className="w-full h-full object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent && !parent.querySelector('.txt-logo-footer')) {
-                    const txt = document.createElement('span');
-                    txt.className = 'txt-logo-footer text-black font-black text-[10px] leading-tight text-center';
-                    txt.innerText = 'ELS POWER';
-                    parent.appendChild(txt);
-                  }
-                }}
+                referrerPolicy="no-referrer"
               />
             </div>
-            <h3 className="text-xl font-black italic tracking-tighter">ELS POWER</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 text-slate-400 text-sm">
