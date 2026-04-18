@@ -5,39 +5,39 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="flex items-center bg-slate-200 dark:bg-slate-800 rounded-lg p-1">
+    <div className="flex items-center bg-slate-200 dark:bg-slate-800 rounded-md p-0.5">
       <button
         onClick={() => setTheme('light')}
-        className={`p-1.5 rounded-md transition-colors ${
+        className={`p-1 rounded transition-colors ${
           theme === 'light' 
             ? 'bg-white dark:bg-slate-600 text-orange-500 shadow-sm' 
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
         }`}
         title="Claro"
       >
-        <Sun size={14} />
+        <Sun size={10} />
       </button>
       <button
         onClick={() => setTheme('system')}
-        className={`p-1.5 rounded-md transition-colors ${
+        className={`p-1 rounded transition-colors ${
           theme === 'system' 
             ? 'bg-white dark:bg-slate-600 text-orange-500 shadow-sm' 
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
         }`}
         title="Sistema"
       >
-        <Monitor size={14} />
+        <Monitor size={10} />
       </button>
       <button
         onClick={() => setTheme('dark')}
-        className={`p-1.5 rounded-md transition-colors ${
+        className={`p-1 rounded transition-colors ${
           theme === 'dark' 
             ? 'bg-white dark:bg-slate-600 text-orange-500 shadow-sm' 
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
         }`}
         title="Escuro"
       >
-        <Moon size={14} />
+        <Moon size={10} />
       </button>
     </div>
   );

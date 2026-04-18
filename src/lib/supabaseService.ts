@@ -132,6 +132,18 @@ export const supabaseService = {
     return data;
   },
 
+  async getAllEvaluations() {
+    const { data, error } = await supabase
+      .from('evaluations')
+      .select('*, profiles!evaluations_athlete_id_fkey(full_name)');
+    if (error) {
+      // Fallback if relation is not set
+      const fallback = await supabase.from('evaluations').select('*');
+      return fallback.data || [];
+    }
+    return data || [];
+  },
+
   async addEvaluation(athleteId: string, evaluationData: any) {
     const { data, error } = await supabase
       .from('evaluations')

@@ -204,8 +204,8 @@ export default function Login() {
           <ArrowLeft size={24} />
         </button>
 
-        <div className="flex flex-col items-center mb-8 mt-2">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center p-3 shadow-xl mb-4 group overflow-hidden">
+        <div className="flex flex-col items-center mb-6 mt-2">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center p-2 shadow-xl mb-3 group overflow-hidden">
             <img 
               src="/logo.png" 
               alt="Logo" 
@@ -215,8 +215,8 @@ export default function Login() {
               }}
             />
           </div>
-          <h1 className="text-2xl font-normal text-gray-900 dark:text-white mb-2">Fazer login</h1>
-          <p className="text-gray-600 dark:text-slate-400 text-sm italic">Bem-vindo(a)</p>
+          <h1 className="text-xl font-normal text-gray-900 dark:text-white mb-1">Fazer login</h1>
+          <p className="text-gray-600 dark:text-slate-400 text-xs italic">Bem-vindo(a)</p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -226,7 +226,7 @@ export default function Login() {
               placeholder="E-mail"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none transition"
+              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:focus:ring-orange-900 outline-none transition"
               required
             />
           </div>
@@ -236,15 +236,15 @@ export default function Login() {
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none transition pr-12"
+              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:focus:ring-orange-900 outline-none transition pr-10"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors"
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
 
@@ -254,23 +254,23 @@ export default function Login() {
               id="rememberMe"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="w-3.5 h-3.5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
             />
-            <label htmlFor="rememberMe" className="text-sm text-gray-600 dark:text-slate-400 cursor-pointer select-none">
+            <label htmlFor="rememberMe" className="text-xs text-gray-600 dark:text-slate-400 cursor-pointer select-none">
               Lembrar meu e-mail
             </label>
           </div>
           
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-xs">{error}</p>}
 
-          <div className="mt-4 flex justify-between items-center">
-            <button type="button" className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 px-2 py-1 rounded">
+          <div className="mt-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <button type="button" className="text-orange-500 text-xs font-bold hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-500/10 px-2 py-1 rounded transition-colors w-full sm:w-auto text-center">
               Esqueceu a senha?
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-[#0b57d0] hover:bg-[#0842a0] dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-2 rounded-full font-medium transition disabled:opacity-50"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg shadow-orange-500/20 active:scale-95 transition-all w-full sm:w-auto text-center"
             >
               {loading ? 'Entrando...' : 'Avançar'}
             </button>
@@ -278,12 +278,12 @@ export default function Login() {
         </form>
       </div>
       
-      <div className="z-10 mt-6 flex gap-4 text-xs text-white/70 dark:text-slate-400">
-        <button className="hover:bg-white/10 dark:hover:bg-slate-800 px-2 py-1 rounded transition-colors">Português (Brasil)</button>
+      <div className="z-10 mt-6 flex flex-wrap gap-4 text-[10px] sm:text-xs font-medium">
+        <button className="text-white hover:text-orange-400 hover:bg-white/10 dark:hover:bg-slate-800 px-2 py-1 rounded transition-colors shadow-sm">Português (Brasil)</button>
         <div className="flex gap-4">
-          <button className="hover:bg-white/10 dark:hover:bg-slate-800 px-2 py-1 rounded transition-colors">Ajuda</button>
-          <button className="hover:bg-white/10 dark:hover:bg-slate-800 px-2 py-1 rounded transition-colors">Privacidade</button>
-          <button className="hover:bg-white/10 dark:hover:bg-slate-800 px-2 py-1 rounded transition-colors">Termos</button>
+          <button className="text-white hover:text-orange-400 hover:bg-white/10 dark:hover:bg-slate-800 px-2 py-1 rounded transition-colors shadow-sm">Ajuda</button>
+          <button className="text-white hover:text-orange-400 hover:bg-white/10 dark:hover:bg-slate-800 px-2 py-1 rounded transition-colors shadow-sm">Privacidade</button>
+          <button className="text-white hover:text-orange-400 hover:bg-white/10 dark:hover:bg-slate-800 px-2 py-1 rounded transition-colors shadow-sm">Termos</button>
         </div>
       </div>
     </div>

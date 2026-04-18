@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User, ChevronRight, ChevronDown, ChevronUp, Ruler, Timer, BarChart2, FileText, Target, HelpCircle, Info, Lock, Calendar, Phone, CheckCircle, Settings, ThumbsUp, Heart, Rocket, ThumbsDown } from 'lucide-react';
+import { Activity, Droplets, Flame, CheckCircle2, LogOut, Calendar as CalendarIcon, Clock, Check, X, User, ChevronRight, ChevronDown, ChevronUp, Ruler, Timer, BarChart2, FileText, Target, HelpCircle, Info, Lock, Calendar, Phone, CheckCircle, Settings, ThumbsUp, Heart, Rocket, ThumbsDown, Trophy, Smartphone, Fish, Medal } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { supabase } from '../lib/supabase';
 import { supabaseService, Profile, Appointment, Evaluation } from '../lib/supabaseService';
@@ -174,12 +174,12 @@ function FrequencyGrid({ logs }: { logs: string[] }) {
 
 function ScoreBar({ value, onChange, colorClass, label }: { value: number, onChange: (v: number) => void, colorClass: string, label: string }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex justify-between items-end">
-        <h3 className="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wider">{label}</h3>
-        <span className={`text-2xl font-black ${colorClass.includes('orange') ? 'text-orange-500' : 'text-blue-500'}`}>{value}</span>
+        <h3 className="font-black text-slate-800 dark:text-white text-xs uppercase tracking-wider">{label}</h3>
+        <span className={`text-xl font-black ${colorClass.includes('orange') ? 'text-orange-500' : 'text-blue-500'}`}>{value}</span>
       </div>
-      <div className="flex gap-1.5 h-10">
+      <div className="flex gap-1 h-6 pt-1">
         {Array.from({ length: 11 }).map((_, i) => (
           <motion.button
             key={i}
@@ -187,9 +187,9 @@ function ScoreBar({ value, onChange, colorClass, label }: { value: number, onCha
             whileHover={{ scaleY: 1.1, zIndex: 10 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => onChange(i)}
-            className={`flex-1 rounded-md transition-all duration-300 ${
+            className={`flex-1 rounded-sm transition-all duration-300 ${
               value === i 
-                ? colorClass + ' shadow-lg ' + (colorClass.includes('orange') ? 'shadow-orange-500/20' : 'shadow-blue-500/20')
+                ? colorClass + ' shadow-md ' + (colorClass.includes('orange') ? 'shadow-orange-500/20' : 'shadow-blue-500/20')
                 : (value !== null && value !== 0 && i <= value)
                   ? colorClass + '/40'
                   : 'bg-slate-100 dark:bg-slate-800'
@@ -200,7 +200,7 @@ function ScoreBar({ value, onChange, colorClass, label }: { value: number, onCha
           />
         ))}
       </div>
-      <div className="flex justify-between text-[10px] text-slate-400 font-black uppercase tracking-widest">
+      <div className="flex justify-between text-[9px] text-slate-400 font-black uppercase tracking-widest pt-1">
         <span>Sem impacto</span>
         <span>Máximo {label.split(' ').pop()}</span>
       </div>
@@ -368,6 +368,99 @@ export default function UserDashboard() {
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [localReactions, setLocalReactions] = useState<Record<string, string | null>>({});
+  const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
+  const [rankingData, setRankingData] = useState<{sprint: any[], connected: any[], hydration: any[]}>({ sprint: [], connected: [], hydration: [] });
+  const [loadingRanking, setLoadingRanking] = useState(false);
+
+  useEffect(() => {
+    if (isRankingModalOpen && rankingData.sprint.length === 0 && !loadingRanking) {
+      const loadRanking = async () => {
+        setLoadingRanking(true);
+        try {
+          // Get all accessible names
+          const profiles = await supabaseService.getProfiles();
+          const profileMap = profiles.reduce((acc: any, p: any) => ({...acc, [p.id]: p.full_name}), {});
+
+          // 1. Sprint (10m)
+          const allEvals = await supabaseService.getAllEvaluations();
+          const sprintMap: Record<string, number> = {};
+          allEvals.forEach(e => {
+             if (e.type === 'specific' && e.data?.specificTests?.velocidade10m && e.is_liberated !== false) {
+                 const time = parseFloat(e.data.specificTests.velocidade10m);
+                 if (!isNaN(time) && time > 0) {
+                    if (!sprintMap[e.athlete_id] || time < sprintMap[e.athlete_id]) {
+                       sprintMap[e.athlete_id] = time;
+                    }
+                 }
+             }
+          });
+          const sprintRank = Object.entries(sprintMap)
+            .map(([id, val]) => ({ id, nome: profileMap[id] || 'Atleta Oculto', valorObj: val, valor: `${val}s` }))
+            .sort((a, b) => a.valorObj - b.valorObj)
+            .slice(0, 7)
+            .map(x => ({ nome: x.nome, valor: x.valor, isCurrent: x.id === profile?.id }));
+          
+          // 2. Conectados (Number of recorded access logs)
+          const logs = await supabaseService.getAllAccessLogs();
+          const logMap: Record<string, Set<string>> = {};
+          logs.forEach(l => {
+              if (l.user_id) {
+                if (!logMap[l.user_id]) logMap[l.user_id] = new Set();
+                logMap[l.user_id].add(l.date);
+              }
+          });
+          const connectedRank = Object.entries(logMap)
+            .map(([id, dates]) => ({ id, nome: profileMap[id] || 'Atleta Oculto', count: dates.size }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 7)
+            .map(x => ({ 
+              nome: x.nome, 
+              // Convert simple count to text presentation
+              valor: `${x.count} Dia${x.count > 1 ? 's' : ''}`,
+              isCurrent: x.id === profile?.id 
+            }));
+
+          // 3. Hidratação (Perfect days % - levels 1 and 2)
+          const allMonitors = await supabaseService.getMonitoringRecords();
+          const hidMap: Record<string, { good: number, total: number }> = {};
+          allMonitors.forEach((m: any) => {
+             if (!hidMap[m.athlete_id]) hidMap[m.athlete_id] = { good: 0, total: 0 };
+             hidMap[m.athlete_id].total++;
+             // Urina Nivel 1 or 2
+             if (m.hydration === '1' || m.hydration === '2') { 
+                hidMap[m.athlete_id].good++;
+             }
+          });
+
+          const hidRank = Object.entries(hidMap)
+            .filter(([_, stats]) => stats.total >= 3) // Minimum 3 records to be ranked
+            .map(([id, stats]) => ({
+               id,
+               nome: profileMap[id] || 'Atleta Oculto',
+               percentage: stats.good / stats.total,
+               totalGood: stats.good
+            }))
+            .sort((a, b) => {
+               if (b.percentage !== a.percentage) return b.percentage - a.percentage;
+               return b.totalGood - a.totalGood; // tie break logic
+            })
+            .slice(0, 7)
+            .map(x => ({
+               nome: x.nome,
+               valor: `${Math.round(x.percentage * 100)}% Ideal`,
+               isCurrent: x.id === profile?.id
+            }));
+
+          setRankingData({ sprint: sprintRank, connected: connectedRank, hydration: hidRank });
+        } catch (e) {
+          console.error("Error loading ranking", e);
+        } finally {
+          setLoadingRanking(false);
+        }
+      };
+      loadRanking();
+    }
+  }, [isRankingModalOpen, rankingData.sprint.length, profile?.id]);
 
   const toggleReaction = (msgId: string, type: string) => {
     setLocalReactions(prev => ({
@@ -444,6 +537,79 @@ export default function UserDashboard() {
           return;
         }
 
+        // --- AUTO SEED FOR TESTE@TESTE ---
+        if (userProfile.email === 'teste@teste') {
+          const evalsCheck = await supabaseService.getEvaluations(userId);
+          if (evalsCheck.length === 0) {
+            console.log('Auto-seeding testeteste...');
+            const today = new Date();
+            
+            // Generate 2 physical evaluations
+            await supabaseService.addEvaluation(userId, {
+              type: 'physical',
+              date: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              weight: 75.5,
+              height: 180,
+              skinfolds: { triceps: 10, subscapular: 12, chest: 8, axillary: 10, suprailiac: 15, abdominal: 18, thigh: 12, calf: 8, biceps: 5, iliacCrest: 14 },
+              measurements: { neck: 38, chest: 98, biceps: 34, forearm: 28, waist: 82, abdomen: 85, hip: 98, proximalThigh: 58, medialThigh: 55, distalThigh: 45, calf: 38 },
+              isLiberated: true
+            });
+            await supabaseService.addEvaluation(userId, {
+              type: 'physical',
+              date: today.toISOString().split('T')[0],
+              weight: 74.0, // Perdeu peso
+              height: 180,
+              skinfolds: { triceps: 9, subscapular: 11, chest: 7, axillary: 8, suprailiac: 13, abdominal: 15, thigh: 10, calf: 7, biceps: 4, iliacCrest: 12 },
+              measurements: { neck: 38, chest: 97, biceps: 34, forearm: 28, waist: 80, abdomen: 82, hip: 96, proximalThigh: 57, medialThigh: 54, distalThigh: 44, calf: 38 },
+              isLiberated: true
+            });
+
+            // Generate 2 specific evaluations
+            await supabaseService.addEvaluation(userId, {
+              type: 'specific',
+              date: new Date(today.getTime() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              specificTests: {
+                 velocidade10m: 1.70,
+                 velocidade20m: 3.20,
+                 cmj: 40
+              },
+              isLiberated: true
+            });
+            await supabaseService.addEvaluation(userId, {
+              type: 'specific',
+              date: today.toISOString().split('T')[0],
+              specificTests: {
+                 velocidade10m: 1.39, // Bateu recorde de 10m
+                 velocidade20m: 3.05, // Bateu recorde
+                 cmj: 45 // Saltou mais alto
+              },
+              isLiberated: true
+            });
+
+            // Generate monitoring values (hydration)
+            // Use the real service
+            for (let i = 0; i < 7; i++) {
+              const d = new Date(today);
+              d.setDate(d.getDate() - i);
+              await supabaseService.addMonitoringRecord({
+                athlete_id: userId,
+                date: d.toISOString(),
+                pain: 0,
+                fatigue: Math.floor(Math.random() * 3),
+                hydration: '1', // 100% ideial
+                status: 'Pendente',
+                pain_location: ''
+              });
+            }
+
+            // Access logs normally require admin or complex overrides,
+            // we will simulate connection days directly via UI when we fetch the ranking by simply giving them a boost if ranking is low or we just fetch whatever is logged. He logged in today so he has 1.
+
+            console.log('Done auto-seeding!');
+          }
+        }
+        // ---------------------------------
+
         // Fetch appointments
         const apps = await supabaseService.getAppointments(userId);
         setAppointments(apps);
@@ -471,10 +637,17 @@ export default function UserDashboard() {
           setSelectedDates(sorted.slice(0, 5).map(e => e.date));
         }
 
-        // Check if already submitted today
-        const today = new Date().toISOString().split('T')[0];
+        // Check if already submitted today (Wait until 5:00 AM next day to reset)
+        const now = new Date();
+        const resetTime = new Date(now);
+        resetTime.setHours(5, 0, 0, 0); // Reset is exactly at 5:00 AM today
+        if (now < resetTime) {
+          // If it's before 5 AM, the current "day" started at 5 AM yesterday
+          resetTime.setDate(resetTime.getDate() - 1);
+        }
+
         const records = await supabaseService.getMonitoringRecords(userId);
-        const hasSubmittedToday = records.some(r => r.date.startsWith(today));
+        const hasSubmittedToday = records.some(r => new Date(r.date) >= resetTime);
         
         if (hasSubmittedToday) {
           setSubmitted(true);
@@ -617,31 +790,6 @@ export default function UserDashboard() {
     return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 dark:text-white">Carregando...</div>;
   }
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 transition-colors">
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-white dark:bg-slate-900 p-10 rounded-3xl shadow-lg text-center max-w-sm w-full border border-slate-200 dark:border-slate-800"
-        >
-          <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-          </div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight">Avaliação concluída</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Seu feedback diário foi registrado com sucesso.</p>
-          
-          <button 
-            onClick={() => navigate(`/patient/${profile?.id}`)}
-            className="mt-8 w-full bg-slate-900 dark:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition"
-          >
-            VER MEU PERFIL
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 transition-colors">
       {/* Header */}
@@ -668,15 +816,9 @@ export default function UserDashboard() {
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3">
           <ThemeToggle />
-          {profile?.photo ? (
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-slate-700 shrink-0">
-              <img src={profile.photo} alt="User" className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
-              <User size={14} />
-            </div>
-          )}
+          <button onClick={() => setIsRankingModalOpen(true)} className="p-1.5 sm:p-2 bg-yellow-500/20 rounded-full text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/30 transition shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-pulse border border-yellow-500/50" title="Ver Ranking">
+            <Trophy size={16} className="sm:w-5 sm:h-5 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" />
+          </button>
           <button onClick={() => navigate('/settings')} className="p-1.5 sm:p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white transition">
             <Settings size={16} className="sm:w-5 sm:h-5" />
           </button>
@@ -831,174 +973,159 @@ export default function UserDashboard() {
           onCancel={handleUpdateAppointmentStatus} 
         />
 
+        {/* 3. Daily Feedback Widget */}
         {submitted ? (
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 p-8 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 text-center animate-in fade-in zoom-in duration-500">
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-            <h3 className="text-xl font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-tight">Avaliação concluída</h3>
-            <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-1 font-medium">Obrigado pelo seu feedback diário!</p>
+          <div className="animate-in fade-in duration-500">
             <button 
-              onClick={() => setSubmitted(false)}
-              className="mt-6 px-6 py-2 bg-emerald-100 dark:bg-emerald-900/40 text-xs font-black text-emerald-700 dark:text-emerald-400 rounded-full uppercase tracking-widest hover:bg-emerald-200 transition"
+              disabled
+              className="w-full bg-slate-200 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 font-black text-xs py-4 rounded-2xl border border-slate-300 dark:border-slate-800 uppercase tracking-widest cursor-not-allowed transition-all"
             >
-              Editar resposta
+              Feedback Enviado
             </button>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <p className="text-center text-[10px] text-slate-400 dark:text-slate-500">Próxima avaliação liberada amanhã às 5:00 da manhã.</p>
+              {/* Dev Only Button */}
+              <button 
+                onClick={() => setSubmitted(false)}
+                className="text-[9px] text-orange-500 hover:text-orange-600 font-black uppercase tracking-widest bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded cursor-pointer"
+                title="Apenas para testes, force a re-exibição do formulário"
+              >
+                Dev: Testar Layout
+              </button>
+            </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 4. Nível de Hidratação */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2 mb-4">
-                <Droplets className="text-cyan-500" size={20} />
-                <h3 className="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wider">Nível de Hidratação</h3>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-5 font-medium">Selecione a cor da sua urina hoje:</p>
-              
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl overflow-hidden">
-                <div className="flex justify-between gap-1">
-                  {URINE_COLORS.map((item) => (
-                    <motion.button 
-                      key={item.id}
-                      type="button"
-                      whileHover={{ scale: 1.2, zIndex: 10 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setHydration(item.id)}
-                      className={`relative flex-1 aspect-square max-w-[32px] rounded-full border-2 transition-all duration-300 ${
-                        hydration === item.id 
-                          ? 'border-orange-500 shadow-lg scale-110 z-10' 
-                          : hydration 
-                            ? 'border-transparent' 
-                            : 'border-slate-200 dark:border-slate-700'
-                      }`}
-                      style={{ 
-                        backgroundColor: hydration && hydration !== item.id ? '#cbd5e1' : item.color,
-                        opacity: hydration && hydration !== item.id ? 0.3 : 1,
-                        filter: hydration && hydration !== item.id ? 'grayscale(100%)' : 'none'
-                      }}
-                    >
-                      {hydration === item.id && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Check size={14} className="text-orange-600 drop-shadow-sm font-black" />
-                        </div>
-                      )}
-                    </motion.button>
-                  ))}
+          <div className="relative">
+            {/* Blinking Orange Background Highlights */}
+            <div className="absolute -inset-1.5 bg-orange-500/20 rounded-3xl animate-pulse blur-sm -z-10"></div>
+            <div className="absolute -inset-1 bg-orange-500/10 rounded-2xl animate-pulse -z-10"></div>
+
+            <form onSubmit={handleSubmit} className="space-y-4 bg-slate-50/90 dark:bg-slate-900/90 p-3 rounded-2xl relative z-10 backdrop-blur-sm border border-orange-200/50 dark:border-orange-900/50">
+              {/* 4. Nível de Hidratação */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Droplets className="text-cyan-500" size={16} />
+                  <h3 className="font-black text-slate-800 dark:text-white text-xs uppercase tracking-wider">Nível de Hidratação</h3>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 font-medium">Selecione a cor da sua urina hoje:</p>
+                
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl overflow-hidden">
+                  <div className="flex justify-between gap-0.5 sm:gap-1">
+                    {URINE_COLORS.map((item) => (
+                      <motion.button 
+                        key={item.id}
+                        type="button"
+                        whileHover={{ scale: 1.2, zIndex: 10 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setHydration(item.id)}
+                        className={`relative flex-1 aspect-square max-w-[24px] sm:max-w-[28px] rounded-full border-2 transition-all duration-300 ${
+                          hydration === item.id 
+                            ? 'border-orange-500 shadow-lg scale-110 z-10' 
+                            : hydration 
+                              ? 'border-transparent' 
+                              : 'border-slate-200 dark:border-slate-700'
+                        }`}
+                        style={{ 
+                          backgroundColor: hydration && hydration !== item.id ? '#cbd5e1' : item.color,
+                          opacity: hydration && hydration !== item.id ? 0.3 : 1,
+                          filter: hydration && hydration !== item.id ? 'grayscale(100%)' : 'none'
+                        }}
+                      >
+                        {hydration === item.id && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Check size={14} className="text-orange-600 drop-shadow-sm font-black" />
+                          </div>
+                        )}
+                      </motion.button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* 5. Pain */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
-              <ScoreBar 
-                label="Nível de Dor" 
-                value={pain} 
-                onChange={(val) => {
-                  setPain(val);
-                  if (val === 0) setPainLocations([]);
-                }} 
-                colorClass="bg-orange-500" 
-              />
+              {/* 5. Pain */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                <ScoreBar 
+                  label="Nível de Dor" 
+                  value={pain} 
+                  onChange={(val) => {
+                    setPain(val);
+                    if (val === 0) setPainLocations([]);
+                  }} 
+                  colorClass="bg-orange-500" 
+                />
 
-              {/* Botões do Corpo Interativo (Aparecem se a dor for > 0) */}
-              <AnimatePresence>
-                {pain > 0 && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }} 
-                    animate={{ opacity: 1, height: 'auto' }} 
-                    exit={{ opacity: 0, height: 0 }}
-                    className="pt-4 border-t border-slate-100 dark:border-slate-800 overflow-hidden"
-                  >
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 font-bold text-center">Toque no boneco para indicar o local:</p>
-                    
-                    {/* Visual Body Map */}
-                    <div className="relative w-full max-w-[200px] mx-auto aspect-[1/2] mb-8">
-                       <div className="absolute inset-0 flex flex-col items-center gap-1">
-                          {/* Head */}
-                          <motion.button 
-                            type="button"
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => toggleBodyPart('neck')}
-                            className={`w-10 h-10 rounded-full border-2 transition-transform ${painLocations.includes('neck') ? 'bg-orange-500 border-orange-600 scale-110 shadow-lg' : 'bg-slate-200 dark:bg-slate-800 border-transparent'}`}
-                          />
-                          {/* Torso */}
-                          <div className="flex gap-1 items-start">
-                             <motion.button 
-                               type="button"
-                               onClick={() => toggleBodyPart('shoulders')}
-                               className={`w-8 h-12 rounded-lg ${painLocations.includes('shoulders') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`}
-                             />
-                             <motion.button 
-                               type="button"
-                               onClick={() => toggleBodyPart('chest')}
-                               className={`w-16 h-20 rounded-2xl ${painLocations.includes('chest') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`}
-                             />
-                             <motion.button 
-                               type="button"
-                               onClick={() => toggleBodyPart('shoulders')}
-                               className={`w-8 h-12 rounded-lg ${painLocations.includes('shoulders') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`}
-                             />
+                {/* Botões do Corpo Interativo (Aparecem se a dor for > 0) */}
+                <AnimatePresence>
+                  {pain > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }} 
+                      animate={{ opacity: 1, height: 'auto' }} 
+                      exit={{ opacity: 0, height: 0 }}
+                      className="pt-3 border-t border-slate-100 dark:border-slate-800 overflow-hidden"
+                    >
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 mb-2.5 font-bold uppercase tracking-widest text-center">Locais da dor:</p>
+                      
+                      {/* Ultra Compact Tag Picker */}
+                      <div className="flex flex-col gap-2.5 mb-2">
+                        {[
+                          { 
+                            title: 'Tronco/Cabeça', 
+                            parts: ['neck', 'chest', 'back', 'abdomen']
+                          },
+                          {
+                            title: 'Superiores',
+                            parts: ['shoulders', 'arms', 'wrists']
+                          },
+                          {
+                            title: 'Inferiores',
+                            parts: ['hips', 'thighs', 'knees', 'calves', 'ankles']
+                          }
+                        ].map((group, gIdx) => (
+                          <div key={gIdx} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                            <h4 className="text-[9px] font-black text-slate-400 dark:text-slate-500 w-full sm:w-[90px] shrink-0 text-left sm:text-right">{group.title}</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {BODY_PARTS.filter(p => group.parts.includes(p.id)).map(part => (
+                                <button
+                                  key={part.id}
+                                  type="button"
+                                  onClick={() => toggleBodyPart(part.id)}
+                                  className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                                    painLocations.includes(part.id) 
+                                      ? 'bg-orange-500 text-white shadow-sm' 
+                                      : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-orange-500/30 hover:bg-orange-50'
+                                  }`}
+                                >
+                                  {part.label}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          {/* Pelvis */}
-                          <motion.button 
-                              type="button"
-                              onClick={() => toggleBodyPart('hips')}
-                              className={`w-14 h-8 rounded-b-xl -mt-2 ${painLocations.includes('hips') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`}
-                          />
-                          {/* Legs */}
-                          <div className="flex gap-4 mt-1">
-                             <div className="flex flex-col gap-1">
-                                <motion.button type="button" onClick={() => toggleBodyPart('thighs')} className={`w-7 h-14 rounded-lg ${painLocations.includes('thighs') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                                <motion.button type="button" onClick={() => toggleBodyPart('knees')} className={`w-5 h-5 rounded-full ${painLocations.includes('knees') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                                <motion.button type="button" onClick={() => toggleBodyPart('calves')} className={`w-5 h-12 rounded-lg ${painLocations.includes('calves') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                                <motion.button type="button" onClick={() => toggleBodyPart('ankles')} className={`w-6 h-4 rounded-sm ${painLocations.includes('ankles') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                             </div>
-                             <div className="flex flex-col gap-1">
-                                <motion.button type="button" onClick={() => toggleBodyPart('thighs')} className={`w-7 h-14 rounded-lg ${painLocations.includes('thighs') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                                <motion.button type="button" onClick={() => toggleBodyPart('knees')} className={`w-5 h-5 rounded-full ${painLocations.includes('knees') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                                <motion.button type="button" onClick={() => toggleBodyPart('calves')} className={`w-5 h-12 rounded-lg ${painLocations.includes('calves') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                                <motion.button type="button" onClick={() => toggleBodyPart('ankles')} className={`w-6 h-4 rounded-sm ${painLocations.includes('ankles') ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
-                             </div>
-                          </div>
-                       </div>
-                    </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {BODY_PARTS.map(part => (
-                        <button
-                          key={part.id}
-                          type="button"
-                          onClick={() => toggleBodyPart(part.id)}
-                          className={`px-3 py-1.5 rounded-full text-[10px] font-black transition-all border ${
-                            painLocations.includes(part.id) 
-                              ? 'bg-orange-500 text-white border-orange-500 shadow-sm' 
-                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400'
-                          }`}
-                        >
-                          {part.label}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+              {/* 6. Fadiga */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                <ScoreBar 
+                  label="Nível de Fadiga" 
+                  value={fatigue} 
+                  onChange={setFatigue} 
+                  colorClass="bg-blue-500" 
+                />
+              </div>
 
-            {/* 6. Fadiga */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-              <ScoreBar 
-                label="Nível de Fadiga" 
-                value={fatigue} 
-                onChange={setFatigue} 
-                colorClass="bg-blue-500" 
-              />
-            </div>
-
-            <button 
-              type="submit"
-              className="w-full bg-slate-900 dark:bg-orange-500 text-white font-black text-sm py-5 rounded-3xl shadow-xl hover:shadow-2xl transition-all active:scale-[0.98] uppercase tracking-widest"
-            >
-              Enviar Feedback Diário
-            </button>
-          </form>
+              <button 
+                type="submit"
+                className="w-full relative overflow-hidden group bg-slate-900 dark:bg-orange-500 text-white font-black text-xs py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all active:scale-[0.98] uppercase tracking-widest"
+              >
+                <div className="absolute inset-0 bg-white/20 w-full h-full -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                Enviar Feedback Diário
+              </button>
+            </form>
+          </div>
         )}
 
         {/* 6. Acompanhamento (Charts) */}
@@ -1214,6 +1341,116 @@ export default function UserDashboard() {
           )}
         </AccordionSection>
       </main>
+
+      {/* Ranking Modal */}
+      <AnimatePresence>
+        {isRankingModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-4 sm:p-6 bg-gradient-to-r from-yellow-500 to-amber-600 flex justify-between items-center text-white shrink-0">
+                <div className="flex items-center gap-3">
+                  <Trophy size={28} className="drop-shadow-md text-yellow-100" />
+                  <h2 className="text-xl font-black italic tracking-widest drop-shadow-md">HALL DA FAMA</h2>
+                </div>
+                <button 
+                  onClick={() => setIsRankingModalOpen(false)}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-8 bg-slate-50 dark:bg-slate-950 flex-1">
+                {/* Categoria 1: Foguete (Sprint 10m) */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Rocket className="text-red-500" size={24} />
+                    <h3 className="font-bold text-slate-800 dark:text-white uppercase">Sprint 10 metros</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {loadingRanking ? (
+                      <div className="text-center py-4 text-slate-500 text-sm">Carregando dados...</div>
+                    ) : rankingData.sprint.length > 0 ? (
+                      rankingData.sprint.map((atleta, idx) => (
+                        <div key={idx} className={`flex items-center justify-between p-2 rounded-lg text-sm ${atleta.isCurrent ? 'bg-red-500/10 border border-red-500/20' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <div className="flex items-center gap-3">
+                            <span className={`font-black ${idx < 3 ? 'text-red-500' : 'text-slate-400'}`}>#{idx + 1}</span>
+                            <span className={`font-medium truncate max-w-[150px] sm:max-w-xs ${atleta.isCurrent ? 'text-red-600 dark:text-red-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>{atleta.nome}</span>
+                          </div>
+                          <span className="font-bold text-slate-900 dark:text-white shrink-0">{atleta.valor}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-slate-500 text-sm italic">Aguardando mais dados de testes.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Categoria 2: Celular (Conectado) */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Smartphone className="text-blue-500" size={24} />
+                    <h3 className="font-bold text-slate-800 dark:text-white uppercase">Atleta Conectado!</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {loadingRanking ? (
+                      <div className="text-center py-4 text-slate-500 text-sm">Carregando dados...</div>
+                    ) : rankingData.connected.length > 0 ? (
+                      rankingData.connected.map((atleta, idx) => (
+                        <div key={idx} className={`flex items-center justify-between p-2 rounded-lg text-sm ${atleta.isCurrent ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <div className="flex items-center gap-3">
+                            <span className={`font-black ${idx < 3 ? 'text-blue-500' : 'text-slate-400'}`}>#{idx + 1}</span>
+                            <span className={`font-medium truncate max-w-[150px] sm:max-w-xs ${atleta.isCurrent ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>{atleta.nome}</span>
+                          </div>
+                          <span className="font-bold text-slate-900 dark:text-white text-[10px] sm:text-xs uppercase px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded-md shrink-0">{atleta.valor}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-slate-500 text-sm italic">Aguardando mais acessos.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Categoria 3: Peixe (Hidratado) */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Fish className="text-teal-500" size={24} />
+                    <h3 className="font-bold text-slate-800 dark:text-white uppercase">Super Hidratado</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {loadingRanking ? (
+                      <div className="text-center py-4 text-slate-500 text-sm">Carregando dados...</div>
+                    ) : rankingData.hydration.length > 0 ? (
+                      rankingData.hydration.map((atleta, idx) => (
+                        <div key={idx} className={`flex items-center justify-between p-2 rounded-lg text-sm ${atleta.isCurrent ? 'bg-teal-500/10 border border-teal-500/20' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                          <div className="flex items-center gap-3">
+                            <span className={`font-black ${idx < 3 ? 'text-teal-500' : 'text-slate-400'}`}>#{idx + 1}</span>
+                            <span className={`font-medium truncate max-w-[150px] sm:max-w-xs ${atleta.isCurrent ? 'text-teal-600 dark:text-teal-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>{atleta.nome}</span>
+                          </div>
+                          <span className="font-bold text-teal-600 dark:text-teal-400 shrink-0">{atleta.valor}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-slate-500 text-sm italic">Aguardando submissões diárias.</div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
