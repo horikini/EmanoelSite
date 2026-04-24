@@ -24,7 +24,6 @@ export interface MonitoringRecord {
   fatigue: number;
   hydration: string;
   status: string;
-  pain_location?: string;
 }
 
 export interface Appointment {
@@ -145,6 +144,7 @@ export const supabaseService = {
   },
 
   async addEvaluation(athleteId: string, evaluationData: any) {
+    console.log("Submitting evaluation for", athleteId, evaluationData);
     const { data, error } = await supabase
       .from('evaluations')
       .insert([{
@@ -153,7 +153,10 @@ export const supabaseService = {
         is_liberated: evaluationData.isLiberated || false,
         data: evaluationData
       }]);
-    if (error) throw error;
+    if (error) {
+      console.error("DEBUG addEvaluation error:", error);
+      throw error;
+    }
     return data;
   },
 

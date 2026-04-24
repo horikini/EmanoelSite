@@ -597,8 +597,7 @@ export default function UserDashboard() {
                 pain: 0,
                 fatigue: Math.floor(Math.random() * 3),
                 hydration: '1', // 100% ideial
-                status: 'Pendente',
-                pain_location: ''
+                status: 'Pendente'
               });
             }
 
@@ -766,8 +765,7 @@ export default function UserDashboard() {
         pain,
         fatigue,
         hydration,
-        status: 'Pendente',
-        pain_location: painLocations.join(', ')
+        status: 'Pendente'
       });
       
       if (painLocations.length > 0) {

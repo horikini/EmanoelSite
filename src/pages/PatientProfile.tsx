@@ -303,9 +303,13 @@ export default function PatientProfile() {
       alert('Avaliação salva com sucesso!');
       // Reload page to show new evaluation
       window.location.reload();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving evaluation:', error);
-      alert('Erro ao salvar avaliação.');
+      if (error?.message?.includes('row-level security')) {
+        alert('Erro de permissão no banco de dados (RLS). O administrador do banco precisa liberar a política de INSERT para a tabela evaluations.');
+      } else {
+        alert('Erro ao salvar avaliação. ' + (error?.message || ''));
+      }
     }
   };
 

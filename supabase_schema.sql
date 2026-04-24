@@ -68,11 +68,12 @@ CREATE POLICY "Athletes can insert own monitoring" ON monitoring FOR INSERT WITH
 
 -- Appointments: Athletes can see their own, admins can see/manage all
 CREATE POLICY "Users can view own appointments" ON appointments FOR SELECT USING (auth.uid() = athlete_id OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admins can manage appointments" ON appointments FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Users can insert own appointments" ON appointments FOR INSERT WITH CHECK (auth.uid() = athlete_id);
+CREATE POLICY "Admins can manage appointments" ON appointments FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin') WITH CHECK ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
 
 -- Evaluations: Athletes can see their own (if liberated), admins can see/manage all
 CREATE POLICY "Athletes can view own liberated evaluations" ON evaluations FOR SELECT USING ((auth.uid() = athlete_id AND is_liberated = true) OR (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admins can manage evaluations" ON evaluations FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Admins can manage evaluations" ON evaluations FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin') WITH CHECK ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
 
 -- 5. Trigger to automatically create a profile when a new user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user()

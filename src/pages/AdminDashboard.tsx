@@ -21,7 +21,6 @@ type AthleticRecord = {
   fatigue: number;
   hydration: string;
   status: string;
-  pain_location?: string;
 };
 
 type Appointment = {
@@ -156,8 +155,7 @@ export default function AdminDashboard() {
               pain: m.pain,
               fatigue: m.fatigue,
               hydration: m.hydration,
-              status: m.status,
-              pain_location: m.pain_location
+              status: m.status
             };
           });
           setRecords(mappedRecords);
@@ -760,13 +758,6 @@ export default function AdminDashboard() {
                       <p className={`text-sm font-bold ${parseInt(record.hydration) >= 6 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{record.hydration}</p>
                     </div>
                   </div>
-
-                  {record.pain_location && (
-                    <div className="bg-red-50 dark:bg-red-900/10 p-2 rounded-lg border border-red-100 dark:border-red-900/20 mb-1">
-                       <p className="text-[9px] font-black text-red-600 dark:text-red-400 uppercase leading-none mb-1">Locais de Dor:</p>
-                       <p className="text-[10px] text-red-700 dark:text-red-300 font-bold">{record.pain_location}</p>
-                    </div>
-                  )}
 
                   <div className="pt-1">
                     <select 
