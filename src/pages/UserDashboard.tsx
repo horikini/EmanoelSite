@@ -795,24 +795,24 @@ export default function UserDashboard() {
       {/* Header */}
       <header className="bg-slate-900 dark:bg-slate-900 text-white p-2 sm:p-3 sticky top-0 z-10 shadow-md flex justify-between items-center h-12 sm:h-14">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center p-1.5 shadow-lg shadow-orange-500/20 overflow-hidden relative group">
+          <div className="h-7 sm:h-9 flex items-center justify-center group relative px-1">
             <img 
               src="/logo.png" 
               alt="Logo" 
-              className="w-full h-full object-contain relative z-10"
+              className="h-full w-auto object-contain relative z-10 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
                 const parent = e.currentTarget.parentElement;
                 if (parent && !parent.querySelector('.txt-logo-dash')) {
                   const txt = document.createElement('span');
-                  txt.className = 'txt-logo-dash text-white font-black text-[8px] leading-tight text-center';
+                  txt.className = 'txt-logo-dash text-white font-black text-sm leading-tight text-center bg-orange-500 px-2 py-0.5 rounded';
                   txt.innerText = 'ELS';
                   parent.appendChild(txt);
                 }
               }}
             />
           </div>
-          <p className="text-[10px] sm:text-xs text-slate-400 border-l border-slate-700 pl-2 ml-1 font-bold uppercase tracking-widest leading-none">Monitoramento</p>
+          <p className="text-[10px] sm:text-xs text-slate-400 border-l border-slate-700/50 pl-2 ml-1 font-bold uppercase tracking-widest leading-none">Monitoramento</p>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3">
           <ThemeToggle />

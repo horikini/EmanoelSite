@@ -205,18 +205,20 @@ export default function Login() {
         </button>
 
         <div className="flex flex-col items-center mb-6 mt-2">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center p-2 shadow-xl mb-3 group overflow-hidden">
+          <div className="w-20 h-20 flex items-center justify-center p-2 mb-3 group overflow-hidden">
             <img 
               src="/logo.png" 
               alt="Logo" 
-              className="w-full h-full object-contain relative z-10"
+              className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_10px_rgba(249,115,22,0.5)]"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
             />
           </div>
-          <h1 className="text-xl font-normal text-gray-900 dark:text-white mb-1">Fazer login</h1>
-          <p className="text-gray-600 dark:text-slate-400 text-xs italic">Bem-vindo(a)</p>
+          <h1 className="text-xl font-black text-gray-900 dark:text-white mb-1 uppercase tracking-tighter">
+            Bem-vindo <span className="text-orange-500 animate-pulse drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]">campeão</span>
+          </h1>
+          <p className="text-gray-500 dark:text-slate-400 text-[10px] italic uppercase tracking-widest font-bold">Portal do Atleta</p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
